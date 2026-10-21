@@ -21,6 +21,13 @@ icecast_admin_user="${icecast_admin_user:-admin}"
 cache_enabled="${cache_enabled:-true}"
 cache_dir="${cache_dir:-}"
 
+# YunoHost passes the answer to a boolean question as "1" or "0"; Mopidy
+# wants "true" or "false".
+case "$cache_enabled" in
+    1|true|True|TRUE|yes|on) cache_enabled="true" ;;
+    *) cache_enabled="false" ;;
+esac
+
 ynh_app_setting_set --key=qobuz_email --value="$qobuz_email"
 ynh_app_setting_set --key=qobuz_auth_token --value="$qobuz_auth_token"
 ynh_app_setting_set --key=qobuz_app_id --value="$qobuz_app_id"
