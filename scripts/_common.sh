@@ -129,6 +129,7 @@ _mopidy_patch_iris_frontend() {
 
     python3 - "$install_dir/src/mopidy-iris/mopidy_iris/static" "$base" "$basename" "$hide_volume" <<'EOF'
 import pathlib
+import re
 import sys
 
 static = pathlib.Path(sys.argv[1])
@@ -138,14 +139,14 @@ hide_volume = sys.argv[4] not in ("false", "0", "no", "off", "")
 
 # The base path of the page: the browser uses it to find the assets.
 index = static / "index.html"
+index_text = ""
 if index.exists():
-    text = index.read_text(encoding="utf-8")
-    text = text.replace('href="/iris/"', f'href="/{base}/"')
-    text = text.replace(
+    index_text = index.read_text(encoding="utf-8")
+    index_text = index_text.replace('href="/iris/"', f'href="/{base}/"')
+    index_text = index_text.replace(
         "register('/iris/service-worker.js')",
         f"register('/{base}/service-worker.js')",
     )
-    index.write_text(text, encoding="utf-8")
 
 # The router, the pusher websocket and the http endpoints of the frontend.
 replacements = [
@@ -191,6 +192,25 @@ for name in ("app.css", "app.min.css"):
     if hide_volume:
         text += volume_rule
     path.write_text(text, encoding="utf-8")
+
+# The build number is the cache buster of the assets: the browser keeps them
+# for years, so it has to change when the files are patched.  Otherwise the
+# old ones are used and the change stays invisible.
+import hashlib
+
+digest = hashlib.sha256()
+for name in ("app.js", "app.min.js", "app.css", "app.min.css"):
+    path = static / name
+    if path.exists():
+        digest.update(path.read_bytes())
+
+build = str(int(digest.hexdigest()[:9], 16))
+index_text = re.sub(
+    r'var build = "[0-9]+";', f'var build = "{build}";', index_text
+)
+
+if index.exists():
+    index.write_text(index_text, encoding="utf-8")
 EOF
 
     chown -R "$app:" "$install_dir/src/mopidy-iris/mopidy_iris/static"
