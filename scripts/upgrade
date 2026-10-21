@@ -74,6 +74,18 @@ ynh_config_add_systemd --service="mopidy-publisher" --template="systemd-publishe
 yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
 
 #=================================================
+# SETUP SSOWAT
+#=================================================
+ynh_script_progression "Configuring domain-wide permissions..."
+
+ynh_permission_url --permission="main" --add_url="$domain/mopidy/ws"
+ynh_permission_url --permission="main" --add_url="$domain$path/iris"
+ynh_permission_url --permission="main" --add_url="$domain$path/local"
+# The album art of the local library is served under /local/, outside of the
+# path of the app.
+ynh_permission_url --permission="main" --add_url="$domain/local"
+
+#=================================================
 # START SYSTEMD SERVICES
 #=================================================
 ynh_script_progression "Starting $app's systemd services..."

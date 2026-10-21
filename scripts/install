@@ -88,6 +88,9 @@ ynh_script_progression "Configuring domain-wide permissions..."
 ynh_permission_url --permission="main" --add_url="$domain/mopidy/ws"
 ynh_permission_url --permission="main" --add_url="$domain$path/iris"
 ynh_permission_url --permission="main" --add_url="$domain$path/local"
+# The album art of the local library is served under /local/, outside of the
+# path of the app.
+ynh_permission_url --permission="main" --add_url="$domain/local"
 
 #=================================================
 # PROVIDE ADDITIONAL SHELL COMMAND
