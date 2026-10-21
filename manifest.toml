@@ -7,7 +7,7 @@ name = "Mopidy"
 description.en = "Music server with the Iris web interface, Qobuz hi-res streaming and an Icecast publisher"
 description.fr = "Serveur de musique avec l'interface web Iris, le streaming Qobuz hi-res et un filtreur Icecast"
 
-version = "3.4.2~ynh16"
+version = "3.4.2~ynh17"
 
 maintainers = ["rusty71"]
 

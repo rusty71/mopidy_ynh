@@ -10,6 +10,12 @@ The interface is Iris, served by Mopidy itself:
 The bare URL of the app (`https://<domain><path>/`) redirects to the
 interface.
 
+**The first visit shows a "Welcome to Iris" dialog.**  It asks for a name
+for the browser and shows the host and the port it found; the host has to
+be the one the browser uses (`<domain>`) and the port the one of the
+website (443 for https).  Press "Save" and the interface comes up.  The
+answer is kept in the browser, so it is asked once per browser.
+
 > The Iris frontend always talks to Mopidy over the websocket on
 > `/mopidy/ws`, whatever path the app is installed under.  The package adds
 > that location to the nginx configuration, so it works out of the box.

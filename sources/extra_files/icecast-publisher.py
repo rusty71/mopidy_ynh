@@ -48,10 +48,37 @@ logger = logging.getLogger("icecast-publisher")
 CONTENT_TYPES = {"flac": "application/ogg", "mp3": "audio/mpeg"}
 
 
+def _ogg_header_length(data: bytes) -> int:
+    """The length of the header of an Ogg stream, 0 while it is incomplete.
+
+    The header of an Ogg stream is made of the pages with a granule
+    position of 0: the identification page and the page(s) with the FLAC
+    metadata.  The first page with audio has a granule position with the
+    number of samples in it, so it ends the header.
+    """
+    pos = 0
+    while pos + 27 <= len(data):
+        if data[pos : pos + 4] != b"OggS":
+            # Not an Ogg stream at all.
+            return pos
+        granule = int.from_bytes(data[pos + 6 : pos + 14], "little", signed=True)
+        segments = data[pos + 26]
+        if pos + 27 + segments > len(data):
+            # The page is not complete yet.
+            return 0
+        body = sum(data[pos + 27 : pos + 27 + segments])
+        if granule != 0:
+            # The first page with audio: the header ends before it.
+            return pos
+        pos += 27 + segments + body
+    return 0
+
+
 class IcecastSource:
     """A source client connection to Icecast that stays open."""
 
-    def __init__(self, host, port, mount, user, password, content_type, name):
+    def __init__(self, host, port, mount, user, password, content_type, name,
+                 ogg=False):
         self.host = host
         self.port = port
         self.mount = mount
@@ -62,6 +89,14 @@ class IcecastSource:
         self._sock = None
         self._lock = threading.Lock()
         self.written = 0
+        # The header pages of an Ogg stream are only sent once, at the start
+        # of the stream.  When the connection to Icecast is lost and set up
+        # again in the middle of the stream, Icecast gets a stream without
+        # a header and cannot serve it to a new listener.  Keeping the header
+        # and sending it again fixes that.
+        self.ogg = ogg
+        self.header = b""
+        self.capturing_header = ogg
 
     def connect(self):
         sock = socket.create_connection((self.host, self.port), timeout=15)
@@ -89,6 +124,26 @@ class IcecastSource:
             raise ConnectionError(f"Icecast refused the source: {status}")
         logger.info("Connected to Icecast: %s (%s)", self.mount, status)
         self._sock = sock
+
+        # The header of an Ogg stream has to be sent again when the
+        # connection was lost in the middle of the stream.
+        if self.header:
+            sock.sendall(self.header)
+
+    def capture(self, data: bytes):
+        """Keep the header pages of the stream, to replay them on a reconnect."""
+        if not self.capturing_header:
+            return
+        self.header += data
+        if not self.header.startswith(b"OggS"):
+            # Not an Ogg stream, there is no header to keep.
+            self.header = b""
+            self.capturing_header = False
+            return
+        length = _ogg_header_length(self.header)
+        if length:
+            self.header = self.header[:length]
+            self.capturing_header = False
 
     def write(self, data: bytes):
         if not data:
@@ -250,6 +305,7 @@ class Publisher:
                 # PyGObject returns either the bytes or a (success, bytes) tuple.
                 data = result[1] if isinstance(result, tuple) else result
                 if data:
+                    source.capture(bytes(data))
                     source.write(bytes(data))
                     source.written += len(data)
             except Exception as error:
@@ -505,6 +561,7 @@ def main():
             args.password,
             CONTENT_TYPES[target["codec"]],
             args.name,
+            ogg=(target["codec"] == "flac"),
         )
         while True:
             try:
