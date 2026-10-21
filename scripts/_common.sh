@@ -17,7 +17,7 @@ MOPIDY_COMMIT="ccaadf7862b70111db03b0d25222652625869042"
 
 IRIS_REPO="https://github.com/rusty71/mopidy-iris.git"
 IRIS_TAG="ynh-1.0"
-IRIS_COMMIT="3c7117457843c87096088c3782a626ebd12dd694"
+IRIS_COMMIT="ac4c694a0a3c56469897762210e6ed4a2783c3d1"
 
 QOBUZ_REPO="https://github.com/rusty71/mopidy-qobuz.git"
 QOBUZ_TAG="ynh-1.0"
@@ -101,21 +101,20 @@ _mopidy_install_iris_frontend() {
     cp -a "$wheel_dir/unpacked/mopidy_iris/static" \
         "$install_dir/src/mopidy-iris/mopidy_iris/static"
 
-    _mopidy_fix_iris_base_href
+    _mopidy_patch_iris_frontend
 
     ynh_safe_rm "$wheel_dir"
 }
 
-_mopidy_fix_iris_base_href() {
-    # The built frontend has the base path of the interface hardcoded:
-    # <base id="base_href" href="/iris/">.  The browser uses it for the
-    # assets, so when the app is not installed at the root of the domain the
-    # assets would be looked for outside of the app (and end up at the login
-    # page of YunoHost).  Point it at the path of the app.
-    local index="$install_dir/src/mopidy-iris/mopidy_iris/static/index.html"
-
-    [ -f "$index" ] || return 0
-
+_mopidy_patch_iris_frontend() {
+    # The Iris frontend is built for the path "/iris": the router uses it as
+    # its basename, the pusher websocket and the http endpoints are hardcoded
+    # to it, and the service worker is registered on it.
+    #
+    # When the app is installed under a path, all of that has to follow,
+    # otherwise the router matches no route at all: the page stays empty (a
+    # black screen), the application never renders and never connects to
+    # Mopidy.
     local base="iris"
     if [ -n "${path:-}" ] && [ "$path" != "/" ]; then
         base="${path#/}/iris"
@@ -123,7 +122,51 @@ _mopidy_fix_iris_base_href() {
 
     ynh_print_info "Pointing the Iris frontend at /$base/"
 
-    sed -i "s|href=\"/iris/\"|href=\"/$base/\"|" "$index"
+    # The basename of the router needs its leading slash.
+    local basename="/$base"
+
+    python3 - "$install_dir/src/mopidy-iris/mopidy_iris/static" "$base" "$basename" <<'EOF'
+import pathlib
+import sys
+
+static = pathlib.Path(sys.argv[1])
+base = sys.argv[2]
+basename = sys.argv[3]
+
+# The base path of the page: the browser uses it to find the assets.
+index = static / "index.html"
+if index.exists():
+    text = index.read_text(encoding="utf-8")
+    text = text.replace('href="/iris/"', f'href="/{base}/"')
+    text = text.replace(
+        "register('/iris/service-worker.js')",
+        f"register('/{base}/service-worker.js')",
+    )
+    index.write_text(text, encoding="utf-8")
+
+# The router, the pusher websocket and the http endpoints of the frontend.
+replacements = [
+    (
+        "window.location.pathname.indexOf('/iris') > -1 ? '/iris' : '/'",
+        f'"{basename}"',
+    ),
+    (
+        'window.location.pathname.indexOf("/iris")>-1?"/iris":"/"',
+        f'"{basename}"',
+    ),
+    ('"/iris/ws/"', f'"/{base}/ws/"'),
+    ('"/iris/http/', f'"/{base}/http/'),
+]
+
+for name in ("app.js", "app.min.js"):
+    path = static / name
+    if not path.exists():
+        continue
+    text = path.read_text(encoding="utf-8")
+    for old, new in replacements:
+        text = text.replace(old, new)
+    path.write_text(text, encoding="utf-8")
+EOF
 
     chown -R "$app:" "$install_dir/src/mopidy-iris/mopidy_iris/static"
 }
