@@ -40,23 +40,27 @@ media_dir="/home/yunohost.multimedia/share/Music"
 
 _mopidy_fetch_component() {
     # Fetch a git checkout and check that it is the expected commit.
+    #
+    # The git commands run as the app user: the checkout belongs to it, and
+    # git refuses to work on a repository of another user ("dubious
+    # ownership").
     local url="$1"
     local tag="$2"
     local commit="$3"
     local destination="$4"
 
     if [ -d "$destination/.git" ]; then
-        git -C "$destination" fetch --tags --force origin
+        ynh_exec_as_app git -C "$destination" fetch --tags --force origin
     else
         ynh_safe_rm "$destination"
-        git clone --depth 1 --branch "$tag" "$url" "$destination"
+        ynh_exec_as_app git clone --depth 1 --branch "$tag" "$url" "$destination"
     fi
 
-    git -C "$destination" fetch --depth 1 origin "$commit" 2>/dev/null || true
-    git -C "$destination" checkout --force "$commit"
+    ynh_exec_as_app git -C "$destination" fetch --depth 1 origin "$commit" 2>/dev/null || true
+    ynh_exec_as_app git -C "$destination" checkout --force "$commit"
 
     local actual
-    actual="$(git -C "$destination" rev-parse HEAD)"
+    actual="$(ynh_exec_as_app git -C "$destination" rev-parse HEAD)"
     if [ "$actual" != "$commit" ]; then
         ynh_die "Wrong commit in $destination: expected $commit, got $actual"
     fi
