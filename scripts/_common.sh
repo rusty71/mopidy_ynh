@@ -190,6 +190,10 @@ _mopidy_config_set() {
 
     [ -f "$file" ] || ynh_die "The configuration file $file does not exist"
 
+    # The file is only readable by the app user (mode 400), so it has to be
+    # opened for writing before it is changed.
+    chmod 600 "$file"
+
     python3 - "$file" "$key" "$value" <<'EOF'
 import re
 import sys
