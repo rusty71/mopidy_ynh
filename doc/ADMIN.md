@@ -8,7 +8,12 @@ The interface is Iris, served by Mopidy itself:
 * `https://<domain><path>/local/` - the album art of the local library
 
 The bare URL of the app (`https://<domain><path>/`) redirects to the
-interface.
+interface, and so do the old bookmarks (`<path>/index.html`).
+
+A path without a trailing slash is redirected by Mopidy itself, and the
+nginx configuration puts the path of the app in front of that redirect again:
+`<path>/iris` ends up at `<path>/iris/` and not at `/iris/`, which would be
+outside of the app.
 
 **The first visit shows a "Welcome to Iris" dialog.**  It asks for a name
 for the browser and shows the host and the port it found; the host has to
