@@ -51,6 +51,18 @@ The token is bound to the app id: a token that was issued for one app id is
 rejected by the other.  The package uses the `377257687` / `806331c3b0b641da923b890aed01d04a`
 pair by default, which is the one the token above is issued for.
 
+## The volume control
+
+The volume belongs to the server, not to the listener: with the control in
+the interface, two people listening fight over it.  It is therefore hidden,
+and the setting **"Hide the volume control?"** in the config panel of the app
+turns it on and off.  A change is picked up when the page is reloaded.
+
+The assets of the interface are kept by the browser for years, so the
+package changes the build number in the page (the cache buster of the
+assets) whenever it patches them.  Without that, a change would stay
+invisible until the cache expires.
+
 ## The album cache
 
 When an album is queued in the interface, the extension downloads it in the
