@@ -61,9 +61,8 @@ ram.runtime = "200M"
 
     [install.qobuz_secret]
     ask.en = "Qobuz app secret"
-    help.en = "Has to be the secret that belongs to the app id. The auth token is bound to the app id as well."
+    help.en = "Has to be the secret that belongs to the app id (the auth token is bound to the app id as well). The integration pair is 806331c3b0b641da923b890aed01d04a for the app id 377257687."
     type = "password"
-    default = "806331c3b0b641da923b890aed01d04a"
 
     [install.qobuz_quality]
     ask.en = "Streaming and download quality"
@@ -88,7 +87,6 @@ ram.runtime = "200M"
     ask.en = "Icecast password"
     help.en = "The password of the Icecast app: the source password and the admin password are the same there."
     type = "password"
-    default = "mopidy-stream"
 
     [install.icecast_admin_user]
     ask.en = "Icecast admin user"
