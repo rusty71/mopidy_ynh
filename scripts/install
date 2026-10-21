@@ -10,6 +10,7 @@ source /usr/share/yunohost/helpers
 # The optional questions may be left empty, but the variables have to exist:
 # the templates are only rendered when every variable is set.
 hide_volume="${hide_volume:-true}"
+streams_url="$(_mopidy_streams_url)"
 qobuz_email="${qobuz_email:-}"
 qobuz_auth_token="${qobuz_auth_token:-}"
 qobuz_app_id="${qobuz_app_id:-}"

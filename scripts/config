@@ -55,6 +55,25 @@ get__icecast_admin_user() {
     sed -n 's/.*--admin-user=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
 }
 
+get__streams_url() {
+    sed -n 's/^set \$streams_url "\(.*\)";$/\1/p' \
+        /etc/nginx/conf.d/"$domain".d/"$app".conf | head -1
+}
+
+set__streams_url() {
+    if [ -z "$streams_url" ]; then
+        ynh_print_info "The address of the streams was left unchanged"
+        return
+    fi
+
+    ynh_print_info "The address of the streams is now $streams_url"
+
+    sed -i "s|^set \$streams_url ".*";$|set \$streams_url \"$streams_url\";|" \
+        /etc/nginx/conf.d/"$domain".d/"$app".conf
+
+    ynh_systemctl --service=nginx --action=reload
+}
+
 get__hide_volume() {
     if grep -q "playback-controls section.volume { display: none" \
         "$install_dir/src/mopidy-iris/mopidy_iris/static/app.min.css" 2>/dev/null; then

@@ -106,6 +106,30 @@ _mopidy_install_iris_frontend() {
     ynh_safe_rm "$wheel_dir"
 }
 
+_mopidy_streams_url() {
+    # The address of the streams, for the link that the page of the interface
+    # gets.  When it is not set, the Icecast app is looked for.
+    if [ -n "${streams_url:-}" ]; then
+        echo "$streams_url"
+        return 0
+    fi
+
+    local settings
+    for settings in /etc/yunohost/apps/*/settings.yml; do
+        [ -f "$settings" ] || continue
+        grep -q "^id: icecast2" "$settings" || continue
+
+        local domain port
+        domain="$(sed -n 's/^domain: //p' "$settings" | head -1)"
+        port="$(sed -n 's/^public_port: //p' "$settings" | head -1)"
+        [ -n "$domain" ] || continue
+        echo "https://$domain:${port:-8000}"
+        return 0
+    done
+
+    echo ""
+}
+
 _mopidy_patch_iris_frontend() {
     # The Iris frontend is built for the path "/iris": the router uses it as
     # its basename, the pusher websocket and the http endpoints are hardcoded

@@ -73,6 +73,14 @@ version = "1.0"
     [main.interface]
     name = "Interface"
 
+        [main.interface.streams_url]
+        ask.en = "Address of the streams"
+        ask.fr = "Adresse des flux"
+        help.en = "The link on the page of the interface points to the playlists of the streams."
+        help.fr = "Le lien sur la page de l'interface pointe sur les listes de lecture des flux."
+        type = "string"
+        bind = "null"
+
         [main.interface.hide_volume]
         ask.en = "Hide the volume control?"
         ask.fr = "Masquer le controle de volume ?"

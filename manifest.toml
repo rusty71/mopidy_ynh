@@ -7,7 +7,7 @@ name = "Mopidy"
 description.en = "Music server with the Iris web interface, Qobuz hi-res streaming and an Icecast publisher"
 description.fr = "Serveur de musique avec l'interface web Iris, le streaming Qobuz hi-res et un filtreur Icecast"
 
-version = "3.4.2~ynh25"
+version = "3.4.2~ynh26"
 
 maintainers = ["rusty71"]
 
@@ -93,6 +93,13 @@ ram.runtime = "200M"
     ask.en = "Icecast admin user"
     type = "string"
     default = "admin"
+
+    [install.streams_url]
+    ask.en = "Address of the streams"
+    help.en = "The link on the page of the interface points to the playlists of the streams. Leave it empty to use the Icecast app of this server."
+    type = "string"
+    optional = true
+    default = ""
 
     [install.hide_volume]
     ask.en = "Hide the volume control in the web interface?"

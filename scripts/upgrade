@@ -23,6 +23,7 @@ _mopidy_load_config_vars || true
 # file is gone.
 hide_volume="$(ynh_app_setting_get --key=hide_volume)"
 hide_volume="${hide_volume:-true}"
+streams_url="$(_mopidy_streams_url)"
 qobuz_email="${qobuz_email:-}"
 qobuz_auth_token="${qobuz_auth_token:-}"
 qobuz_app_id="${qobuz_app_id:-}"
