@@ -66,6 +66,7 @@ get__interface_hide_volume() {
 
 set__interface_hide_volume() {
     hide_volume="$interface_hide_volume"
+    ynh_app_setting_set --key=hide_volume --value="$hide_volume"
     ynh_print_info "Applying the volume setting of the interface..."
     _mopidy_patch_iris_frontend
     ynh_print_info "Reload the page of the interface to see the change"
