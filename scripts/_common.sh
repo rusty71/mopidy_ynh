@@ -17,7 +17,7 @@ MOPIDY_COMMIT="ccaadf7862b70111db03b0d25222652625869042"
 
 IRIS_REPO="https://github.com/rusty71/mopidy-iris.git"
 IRIS_TAG="ynh-1.0"
-IRIS_COMMIT="ac4c694a0a3c56469897762210e6ed4a2783c3d1"
+IRIS_COMMIT="7229e3c2c04c0d586e4d8dc083c7067b526301ec"
 
 QOBUZ_REPO="https://github.com/rusty71/mopidy-qobuz.git"
 QOBUZ_TAG="ynh-1.0"
