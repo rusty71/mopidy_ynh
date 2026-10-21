@@ -7,7 +7,7 @@ name = "Mopidy"
 description.en = "Music server with the Iris web interface, Qobuz hi-res streaming and an Icecast publisher"
 description.fr = "Serveur de musique avec l'interface web Iris, le streaming Qobuz hi-res et un filtreur Icecast"
 
-version = "3.4.2~ynh13"
+version = "3.4.2~ynh14"
 
 maintainers = ["rusty71"]
 
@@ -82,7 +82,7 @@ ram.runtime = "200M"
     ask.en = "Icecast port"
     help.en = "The port of the Icecast app: it has to be the same one."
     type = "number"
-    default = 8001
+    default = 8000
 
     [install.icecast_password]
     ask.en = "Icecast password"
