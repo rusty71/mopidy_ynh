@@ -4,12 +4,12 @@ packaging_format = 2
 
 id = "mopidy"
 name = "Mopidy"
-description.en = "Play music, podcasts and radio programs from local disk and various streaming services"
-description.fr = "Écouter de la musique, des podcasts et des programmes radio depuis le disque local et divers services de streaming"
+description.en = "Music server with the Iris web interface, Qobuz hi-res streaming and an Icecast publisher"
+description.fr = "Serveur de musique avec l'interface web Iris, le streaming Qobuz hi-res et un filtreur Icecast"
 
-version = "3.4.2~ynh6"
+version = "3.4.2~ynh7"
 
-maintainers = ["siwinter"]
+maintainers = ["rusty71"]
 
 [upstream]
 license = "Apache-2.0"
@@ -18,15 +18,15 @@ admindoc = "https://docs.mopidy.com/en/latest"
 code = "https://github.com/mopidy/mopidy"
 
 [integration]
-yunohost = ">= 11.2.18"
+yunohost = ">= 11.2.30"
 helpers_version = "2.1"
 architectures = "all"
 multi_instance = false
 ldap = false
 sso = false
-disk = "50M"
-ram.build = "150M"
-ram.runtime = "50M"
+disk = "1500M"
+ram.build = "500M"
+ram.runtime = "200M"
 
 [install]
     [install.domain]
@@ -37,23 +37,76 @@ ram.runtime = "50M"
     default = "/mopidy"
 
     [install.init_main_permission]
-    help.en = "Public app can be used by anonymous visitors."
-    help.fr = "L'application publique peut être utilisée par des visiteurs anonymes."
+    help.en = "The web interface (Iris) can be used by anonymous visitors."
+    help.fr = "L'interface web (Iris) peut etre utilisee par des visiteurs anonymes."
     type = "group"
     default = "visitors"
 
-    [install.mpd_ext]
-    ask.en = "Activate MPD extension (this will open port 6600)"
-    ask.fr = "Activer l'extension MPD (cela ouvrira le port 6600)"
+    [install.qobuz_email]
+    ask.en = "Qobuz account e-mail"
+    help.en = "Only used as a fallback: since April 2026 Qobuz blocks programmatic e-mail/password logins, so an auth token is the way in."
+    type = "email"
+    optional = true
+
+    [install.qobuz_auth_token]
+    ask.en = "Qobuz auth token"
+    help.en = "The token that the Qobuz web player holds. Leave empty to fill it in later from the config panel."
+    type = "password"
+    optional = true
+
+    [install.qobuz_app_id]
+    ask.en = "Qobuz app id"
+    type = "string"
+    default = "377257687"
+
+    [install.qobuz_secret]
+    ask.en = "Qobuz app secret"
+    help.en = "Has to be the secret that belongs to the app id. The auth token is bound to the app id as well."
+    type = "password"
+    default = "806331c3b0b641da923b890aed01d04a"
+
+    [install.qobuz_quality]
+    ask.en = "Streaming and download quality"
+    type = "select"
+    choices.27 = "Hi-res FLAC, up to 24-bit/192 kHz"
+    choices.7 = "Hi-res FLAC, up to 24-bit/96 kHz"
+    choices.6 = "CD quality FLAC, 16-bit/44.1 kHz"
+    choices.5 = "MP3, 320 kbps"
+    default = "27"
+
+    [install.icecast_host]
+    ask.en = "Icecast host"
+    type = "string"
+    default = "127.0.0.1"
+
+    [install.icecast_port]
+    ask.en = "Icecast port"
+    type = "number"
+    default = 8000
+
+    [install.icecast_password]
+    ask.en = "Icecast password"
+    help.en = "The password of the Icecast app: the source password and the admin password are the same there."
+    type = "password"
+    default = "mopidy-stream"
+
+    [install.icecast_admin_user]
+    ask.en = "Icecast admin user"
+    type = "string"
+    default = "admin"
+
+    [install.cache_enabled]
+    ask.en = "Download queued albums to the local library?"
+    help.en = "When an album is queued, it is downloaded in the background as tagged FLAC files and added to the local library."
     type = "boolean"
-    default = false
+    default = true
+
+    [install.cache_dir]
+    ask.en = "Directory for the cached albums"
+    type = "string"
+    default = "/home/yunohost.multimedia/share/Music/Qobuz"
 
 [resources]
-    [resources.sources.main]
-    url = "http://none"
-    sha256 = "none"
-    prefetch = false
-    autoupdate.strategy = "latest_github_release"
 
     [resources.system_user]
 
@@ -67,32 +120,26 @@ ram.runtime = "50M"
 
     [resources.ports]
     main.default = 6680
-    mpd.default = 6600
 
     [resources.apt]
     packages = [
         "acl",
         "build-essential",
         "debconf",
+        "ffmpeg",
         "gir1.2-gst-plugins-base-1.0",
         "gir1.2-gstreamer-1.0",
         "git",
-        "gstreamer1.0-alsa",
+        "gstreamer1.0-plugins-base",
         "gstreamer1.0-plugins-good",
         "gstreamer1.0-plugins-ugly",
-        "gstreamer1.0-pulseaudio",
         "gstreamer1.0-tools",
         "libcairo2-dev",
         "libgirepository1.0-dev",
-        "lsb-base",
-        "postgresql-contrib",
-        "postgresql",
+        "pkg-config",
         "python3-dev",
+        "python3-gi",
         "python3-gst-1.0",
         "python3-pip",
-        "python3-pkg-resources",
-        "python3-pykka",
-        "python3-requests",
-        "python3-tornado",
         "python3-venv",
     ]

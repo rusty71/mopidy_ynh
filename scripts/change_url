@@ -4,36 +4,17 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# STOP SYSTEMD SERVICE
+# CHANGE URL
 #=================================================
-ynh_script_progression "Stopping $app's systemd service..."
 
-ynh_systemctl --service=$app --action="stop"
-
-#=================================================
-# MODIFY URL IN NGINX CONF
-#=================================================
-ynh_script_progression "Updating NGINX web server configuration..."
+ynh_script_progression "Changing the URL..."
 
 ynh_config_change_url_nginx
 
-# Change the domain for NGINX
-if [ $change_domain -eq 1 ]; then
-    #adapt permissions for additional URIs
-    ynh_permission_url --permission="main" --add_url="$new_domain/mopidy/ws" --remove_url="$old_domain/mopidy/ws"
-    ynh_permission_url --permission="main" --add_url="$new_domain/local" --remove_url="$old_domain/local"
-    ynh_permission_url --permission="main" --add_url="$new_domain/musicbox_webclient" --remove_url="$old_domain/musicbox_webclient"
-fi
-
-#=================================================
-# START SYSTEMD SERVICE
-#=================================================
-ynh_script_progression "Starting $app's systemd service..."
-
-ynh_systemctl --service="$app" --action="start"
+ynh_systemctl --service=nginx --action=reload
 
 #=================================================
 # END OF SCRIPT
 #=================================================
 
-ynh_script_progression "Change of URL completed for $app"
+ynh_script_progression "URL change completed"

@@ -1,0 +1,94 @@
+version = "1.0"
+
+[main]
+
+    [main.qobuz]
+    name = "Qobuz"
+
+        [main.qobuz.email]
+        ask.en = "Qobuz account e-mail"
+        ask.fr = "Adresse e-mail du compte Qobuz"
+        help.en = "Only used as a fallback: since April 2026 Qobuz blocks programmatic e-mail/password logins, so an auth token is the way in."
+        type = "string"
+        bind = "null"
+
+        [main.qobuz.token]
+        ask.en = "Qobuz auth token"
+        ask.fr = "Jeton d'authentification Qobuz"
+        help.en = "The token that the Qobuz web player holds. Leave the field empty to keep the current one."
+        type = "password"
+        bind = "null"
+
+        [main.qobuz.app_id]
+        ask.en = "Qobuz app id"
+        ask.fr = "Identifiant d'application Qobuz"
+        type = "string"
+        bind = "null"
+
+        [main.qobuz.secret]
+        ask.en = "Qobuz app secret"
+        ask.fr = "Secret d'application Qobuz"
+        help.en = "Has to be the secret that belongs to the app id. The auth token is bound to the app id as well."
+        type = "password"
+        bind = "null"
+
+        [main.qobuz.quality]
+        ask.en = "Streaming and download quality"
+        ask.fr = "Qualité du streaming et des téléchargements"
+        type = "select"
+        choices.27 = "Hi-res FLAC, up to 24-bit/192 kHz"
+        choices.7 = "Hi-res FLAC, up to 24-bit/96 kHz"
+        choices.6 = "CD quality FLAC, 16-bit/44.1 kHz"
+        choices.5 = "MP3, 320 kbps"
+        bind = "null"
+
+    [main.icecast]
+    name = "Icecast"
+
+        [main.icecast.host]
+        ask.en = "Icecast host"
+        ask.fr = "Hôte Icecast"
+        type = "string"
+        bind = "null"
+
+        [main.icecast.port]
+        ask.en = "Icecast port"
+        ask.fr = "Port Icecast"
+        type = "number"
+        bind = "null"
+
+        [main.icecast.password]
+        ask.en = "Icecast password"
+        ask.fr = "Mot de passe Icecast"
+        help.en = "The password of the Icecast app. Leave the field empty to keep the current one."
+        type = "password"
+        bind = "null"
+
+        [main.icecast.admin_user]
+        ask.en = "Icecast admin user"
+        ask.fr = "Utilisateur administrateur Icecast"
+        type = "string"
+        bind = "null"
+
+    [main.cache]
+    name = "Album cache"
+
+        [main.cache.enabled]
+        ask.en = "Download queued albums to the local library?"
+        ask.fr = "Télécharger les albums mis en file d'attente dans la bibliothèque locale ?"
+        type = "boolean"
+        bind = "null"
+
+        [main.cache.dir]
+        ask.en = "Directory for the cached albums"
+        ask.fr = "Répertoire des albums téléchargés"
+        type = "string"
+        bind = "null"
+
+    [main.actions]
+    name = "Actions"
+
+        [main.actions.scan]
+        ask.en = "Scan the local library"
+        ask.fr = "Analyser la bibliothèque locale"
+        type = "button"

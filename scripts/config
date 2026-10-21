@@ -1,0 +1,161 @@
+#!/bin/bash
+
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_abort_if_errors
+
+#=================================================
+# GETTERS
+#=================================================
+
+get__qobuz_email() {
+    _mopidy_config_get username
+}
+
+get__qobuz_token() {
+    # The token is a secret: it can be written, but not read back.
+    echo ""
+}
+
+get__qobuz_app_id() {
+    _mopidy_config_get app_id
+}
+
+get__qobuz_secret() {
+    # The secret is a secret: it can be written, but not read back.
+    echo ""
+}
+
+get__qobuz_quality() {
+    _mopidy_config_get quality
+}
+
+get__icecast_host() {
+    sed -n 's/.*--icecast-host=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+}
+
+get__icecast_port() {
+    sed -n 's/.*--icecast-port=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+}
+
+get__icecast_password() {
+    # The password is a secret: it can be written, but not read back.
+    echo ""
+}
+
+get__icecast_admin_user() {
+    sed -n 's/.*--admin-user=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+}
+
+get__cache_enabled() {
+    _mopidy_config_get cache_enabled
+}
+
+get__cache_dir() {
+    _mopidy_config_get cache_dir
+}
+
+#=================================================
+# SETTERS
+#=================================================
+
+set__qobuz_email() {
+    _mopidy_config_set username "$qobuz_email"
+}
+
+set__qobuz_token() {
+    # An empty field means "keep the current token".
+    if [ -n "$qobuz_token" ]; then
+        _mopidy_config_set auth_token "$qobuz_token"
+    else
+        ynh_print_info "The Qobuz auth token was left unchanged"
+    fi
+}
+
+set__qobuz_app_id() {
+    _mopidy_config_set app_id "$qobuz_app_id"
+}
+
+set__qobuz_secret() {
+    if [ -n "$qobuz_secret" ]; then
+        _mopidy_config_set secret "$qobuz_secret"
+    else
+        ynh_print_info "The Qobuz app secret was left unchanged"
+    fi
+}
+
+set__qobuz_quality() {
+    _mopidy_config_set quality "$qobuz_quality"
+}
+
+set__icecast_host() {
+    _mopidy_set_icecast_option --icecast-host "$icecast_host"
+}
+
+set__icecast_port() {
+    _mopidy_set_icecast_option --icecast-port "$icecast_port"
+}
+
+set__icecast_password() {
+    if [ -n "$icecast_password" ]; then
+        _mopidy_set_icecast_option --password "$icecast_password"
+        _mopidy_set_icecast_option --admin-password "$icecast_password"
+    else
+        ynh_print_info "The Icecast password was left unchanged"
+    fi
+}
+
+set__icecast_admin_user() {
+    _mopidy_set_icecast_option --admin-user "$icecast_admin_user"
+}
+
+set__cache_enabled() {
+    _mopidy_config_set cache_enabled "$cache_enabled"
+}
+
+set__cache_dir() {
+    _mopidy_config_set cache_dir "$cache_dir"
+    mkdir -p "$cache_dir"
+    chown -R "$app:" "$cache_dir"
+}
+
+#=================================================
+# HELPERS
+#=================================================
+
+_mopidy_set_icecast_option() {
+    # Change an option of the publisher in its systemd unit.
+    local option="$1"
+    local value="$2"
+    local unit="/etc/systemd/system/mopidy-publisher.service"
+
+    [ -f "$unit" ] || ynh_die "The unit $unit does not exist"
+
+    sed -i "s|${option}=[^ ]*|${option}=${value}|g" "$unit"
+}
+
+#=================================================
+# ACTIONS
+#=================================================
+
+run__scan() {
+    ynh_print_info "Scanning the local library..."
+    ynh_hide_warnings "$cmd_file" local scan || true
+}
+
+#=================================================
+# RESTART THE SERVICES WHEN SOMETHING CHANGED
+#=================================================
+
+ynh_app_config_apply() {
+    _ynh_app_config_apply
+
+    ynh_print_info "Restarting the services..."
+
+    ynh_systemctl --service="$app" --action="restart" --log_path="systemd"
+    ynh_systemctl --service="mopidy-publisher" --action="restart" --log_path="systemd"
+}
+
+# Keep this last line
+ynh_app_config_run $1

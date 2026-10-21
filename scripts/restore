@@ -1,26 +1,15 @@
 #!/bin/bash
 
-# Keep this path for calling _common.sh inside the execution's context of backup and restore scripts
-source ../settings/scripts/_common.sh
+source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# RESTORE THE APP MAIN DIR
+# RESTORE THE CONFIGURATION FILES
 #=================================================
-ynh_script_progression "Restoring the app main directory..."
 
-ynh_restore "$install_dir"
-
-#=================================================
-# RESTORE THE DATA DIRECTORY
-#=================================================
-ynh_script_progression "Restoring the data directory..."
+ynh_restore "$install_dir/$app.conf"
 
 ynh_restore "$data_dir"
-
-chmod 750 "$data_dir"
-chmod -R o-rwx "$data_dir"
-chown -R "$app:www-data" "$data_dir"
 
 #=================================================
 # RESTORE SYSTEM CONFIGURATIONS
@@ -29,31 +18,21 @@ ynh_script_progression "Restoring system configurations related to $app..."
 
 ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
 
-ynh_restore "/usr/local/bin/mopidyctl"     # /usr/local/bin/mopidyctl
-
 ynh_restore "/etc/systemd/system/$app.service"
+ynh_restore "/etc/systemd/system/mopidy-publisher.service"
+
 systemctl enable "$app.service" --quiet
-if [ "$mpd_ext" -eq 1 ]; then
-    yunohost service add "$app" --description="Mopidy music server" --needs_exposed_ports=$port_mpd
-else
-    yunohost service add "$app" --description="Mopidy music server"
-fi
+systemctl enable "mopidy-publisher.service" --quiet
+
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
 
 #=================================================
-# OPEN PORT
+# RELOAD NGINX AND THE APP SERVICES
 #=================================================
+ynh_script_progression "Reloading NGINX web server and $app's services..."
 
-if [ "$mpd_ext" -eq 1 ]; then
-    ynh_script_progression "Opening MPD-port $port_mpd..."
-    ynh_hide_warnings yunohost firewall allow --no-upnp TCP "$port_mpd"
-fi
-
-#=================================================
-# RELOAD NGINX AND PHP-FPM OR THE APP SERVICE
-#=================================================
-ynh_script_progression "Reloading NGINX web server and $app's service..."
-
-ynh_systemctl --service="$app" --action="start"
+ynh_systemctl --service="$app" --action="start" --log_path="systemd"
+ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 ynh_systemctl --service=nginx --action=reload
 

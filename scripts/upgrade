@@ -4,90 +4,81 @@ source _common.sh
 source /usr/share/yunohost/helpers
 
 #=================================================
-# ENSURE DOWNWARD COMPATIBILITY
+# STOP SYSTEMD SERVICES
 #=================================================
-ynh_script_progression "Ensuring downward compatibility..."
+ynh_script_progression "Stopping $app's systemd services..."
 
-ynh_safe_rm "$install_dir/env"
-
-# Legacy settings
-if [ -n "${mpd_port:-}" ]; then
-    if [ "$mpd_port" -eq 0 ]; then
-        mpd_ext=0
-    else
-        mpd_ext=1
-    fi
-    ynh_app_setting_set --key=mpd_ext --value="$mpd_ext"
-    ynh_app_setting_delete --key=mpd_port
-fi
-
-if [ -z "${mpd_state:-}" ]; then
-    mpd_state="${boolstr[mpd_ext]}"
-    ynh_app_setting_set --key=mpd_state --value="$mpd_state"
-fi
-
-#=================================================
-# STOP SYSTEMD SERVICE
-#=================================================
-ynh_script_progression "Stopping $app's systemd service..."
-
+ynh_systemctl --service="mopidy-publisher" --action="stop"
 ynh_systemctl --service="$app" --action="stop"
 
 #=================================================
-# DOWNLOAD, CHECK AND UNPACK SOURCE
+# UPDATE THE SETTINGS FROM THE EXISTING CONFIGURATION
 #=================================================
-ynh_script_progression "Upgrading source files..."
+# The credentials live in the configuration file of Mopidy (and in the
+# systemd unit of the publisher), not in the settings of the app: read them
+# from there, so that an upgrade does not wipe them.
+_mopidy_load_config_vars || true
 
-_mopidy_install
+# Every variable of the templates has to exist, even when the configuration
+# file is gone.
+qobuz_email="${qobuz_email:-}"
+qobuz_auth_token="${qobuz_auth_token:-}"
+qobuz_app_id="${qobuz_app_id:-}"
+qobuz_secret="${qobuz_secret:-}"
+qobuz_quality="${qobuz_quality:-27}"
+icecast_host="${icecast_host:-127.0.0.1}"
+icecast_port="${icecast_port:-8000}"
+icecast_password="${icecast_password:-}"
+icecast_admin_user="${icecast_admin_user:-admin}"
+cache_enabled="${cache_enabled:-true}"
+cache_dir="${cache_dir:-}"
 
 #=================================================
-# UPDATE A CONFIG FILE
+# UPGRADE THE COMPONENTS
 #=================================================
-ynh_script_progression "Updating configuration..."
+ynh_script_progression "Upgrading the Python environment..."
 
-ynh_config_add --template="app.conf" --destination="$install_dir/$app.conf"
-
-chmod 400 "$install_dir/$app.conf"
-chown "$app:$app" "$install_dir/$app.conf"
+_mopidy_install_python
 
 #=================================================
-# PROVIDE ADDITIONAL SHELL COMMAND
+# UPDATE THE CONFIGURATION
 #=================================================
-ynh_script_progression "Provide additional shell comand..."
+ynh_script_progression "Updating $app's configuration..."
 
-ynh_config_add --template="../sources/extra_files/mopidyctl" --destination="$cmd_file"
-chmod +x "$cmd_file"
+_mopidy_config
+_mopidy_deploy_publisher
 
 #=================================================
 # REAPPLY SYSTEM CONFIGURATIONS
 #=================================================
 ynh_script_progression "Upgrading system configurations related to $app..."
 
-# Create a dedicated NGINX config
+if [ "$cache_enabled" = "true" ]; then
+    mkdir -p "$cache_dir"
+    chown -R "$app:" "$cache_dir"
+fi
+
 ynh_config_add_nginx
 
-# Create a dedicated systemd config
 ynh_config_add_systemd
-if [ "$mpd_ext" -eq 1 ]; then
-    yunohost service add "$app" --description="Mopidy music server" --needs_exposed_ports="$port_mpd"
-else
-    yunohost service add "$app" --description="Mopidy music server"
-fi
+ynh_config_add_systemd --service="mopidy-publisher" --template="systemd-publisher.service"
+
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
 
 #=================================================
-# OPEN PORT
+# START SYSTEMD SERVICES
 #=================================================
-if [ "$mpd_ext" -eq 1 ]; then
-    ynh_script_progression "Opening MPD-port $port_mpd..."
-    ynh_hide_warnings yunohost firewall allow --no-upnp TCP "$port_mpd"
-fi
+ynh_script_progression "Starting $app's systemd services..."
+
+ynh_systemctl --service="$app" --action="start" --log_path="systemd"
+ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 #=================================================
-# START SYSTEMD SERVICE
+# SCAN THE LOCAL LIBRARY
 #=================================================
-ynh_script_progression "Starting $app's systemd service..."
+ynh_script_progression "Scanning the local library..."
 
-ynh_systemctl --service="$app" --action="start"
+ynh_hide_warnings "$cmd_file" local scan || true
 
 #=================================================
 # END OF SCRIPT

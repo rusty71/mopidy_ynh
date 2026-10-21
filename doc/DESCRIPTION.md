@@ -1,3 +1,9 @@
-Mopidy is an extensible music server written in Python.
+Mopidy is a music server that plays your local music and the streaming services
+you subscribe to, and keeps everything in one interface.
 
-Mopidy plays music from local disk, Spotify, SoundCloud, Google Play Music, and more. You edit the playlist from any phone, tablet, or computer using a variety of MPD and web clients.
+This package adds the Iris web interface, the Qobuz extension with hi-res
+streaming and an album cache, and a publisher that turns the playback into two
+continuous Icecast streams: a small MP3 one and a lossless high resolution
+one.
+
+Install it together with the Icecast app, which serves the streams.

@@ -1,8 +1,8 @@
 [Unit]
 Description=Mopidy music server
+After=network.target
 After=avahi-daemon.service
 After=dbus.service
-After=network.target
 After=nss-lookup.target
 After=pulseaudio.service
 After=remote-fs.target
@@ -10,8 +10,12 @@ After=sound.target
 
 [Service]
 User=__APP__
-PermissionsStartOnly=true
-ExecStart=__INSTALL_DIR__/venv/bin/__APP__ --config __INSTALL_DIR__/__APP__.conf
+Group=__APP__
+ExecStart=__INSTALL_DIR__/venv/bin/mopidy --config __INSTALL_DIR__/__APP__.conf
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=3
+StartLimitInterval=60s
 
 [Install]
 WantedBy=multi-user.target

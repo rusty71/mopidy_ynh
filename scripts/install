@@ -7,35 +7,79 @@ source /usr/share/yunohost/helpers
 # INITIALIZE AND STORE SETTINGS
 #=================================================
 
-mpd_state="${boolstr[mpd_ext]}"
-ynh_app_setting_set --key=mpd_state --value="$mpd_state"
+# The optional questions may be left empty, but the variables have to exist:
+# the templates are only rendered when every variable is set.
+qobuz_email="${qobuz_email:-}"
+qobuz_auth_token="${qobuz_auth_token:-}"
+qobuz_app_id="${qobuz_app_id:-}"
+qobuz_secret="${qobuz_secret:-}"
+qobuz_quality="${qobuz_quality:-27}"
+icecast_host="${icecast_host:-127.0.0.1}"
+icecast_port="${icecast_port:-8000}"
+icecast_password="${icecast_password:-}"
+icecast_admin_user="${icecast_admin_user:-admin}"
+cache_enabled="${cache_enabled:-true}"
+cache_dir="${cache_dir:-}"
+
+ynh_app_setting_set --key=qobuz_email --value="$qobuz_email"
+ynh_app_setting_set --key=qobuz_auth_token --value="$qobuz_auth_token"
+ynh_app_setting_set --key=qobuz_app_id --value="$qobuz_app_id"
+ynh_app_setting_set --key=qobuz_secret --value="$qobuz_secret"
+ynh_app_setting_set --key=qobuz_quality --value="$qobuz_quality"
+ynh_app_setting_set --key=icecast_host --value="$icecast_host"
+ynh_app_setting_set --key=icecast_port --value="$icecast_port"
+ynh_app_setting_set --key=icecast_password --value="$icecast_password"
+ynh_app_setting_set --key=icecast_admin_user --value="$icecast_admin_user"
+ynh_app_setting_set --key=cache_enabled --value="$cache_enabled"
+ynh_app_setting_set --key=cache_dir --value="$cache_dir"
 
 #=================================================
 # APP "BUILD" (DEPLOYING SOURCES, VENV, COMPILING ETC)
 #=================================================
-# DOWNLOAD, CHECK AND UNPACK SOURCE
-#=================================================
-ynh_script_progression "Setting up source files..."
+ynh_script_progression "Setting up the Python environment..."
 
-#=================================================
-# INSTALL MOPIDY IN PYTHON ENVIRONMENT
-#=================================================
-ynh_script_progression "Install in Python environment..."
-
-_mopidy_install
-
-chmod -R o-rwx "$data_dir"
-chown -R "$app:www-data" "$data_dir"
+_mopidy_install_python
 
 #=================================================
 # ADD A CONFIGURATION
 #=================================================
 ynh_script_progression "Adding $app's configuration..."
 
-ynh_config_add --template="app.conf" --destination="$install_dir/$app.conf"
+_mopidy_config
+_mopidy_deploy_publisher
 
-chmod 400 "$install_dir/$app.conf"
-chown "$app:$app" "$install_dir/$app.conf"
+#=================================================
+# SYSTEM CONFIGURATION
+#=================================================
+ynh_script_progression "Adding system configurations related to $app..."
+
+# The directory with the music of the users of the server.
+ynh_multimedia_build_main_dir
+mkdir -p "$media_dir"
+
+# The albums that are downloaded from Qobuz end up here.
+if [ "$cache_enabled" = "true" ]; then
+    mkdir -p "$cache_dir"
+    chown -R "$app:" "$cache_dir"
+fi
+
+# Create a dedicated NGINX config
+ynh_config_add_nginx
+
+# Create the systemd services
+ynh_config_add_systemd
+ynh_config_add_systemd --service="mopidy-publisher" --template="systemd-publisher.service"
+
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
+
+#=================================================
+# SETUP SSOWAT
+#=================================================
+ynh_script_progression "Configuring domain-wide permissions..."
+
+ynh_permission_url --permission="main" --add_url="$domain/mopidy/ws"
+ynh_permission_url --permission="main" --add_url="$domain$path/iris"
+ynh_permission_url --permission="main" --add_url="$domain$path/local"
 
 #=================================================
 # PROVIDE ADDITIONAL SHELL COMMAND
@@ -47,80 +91,19 @@ ynh_config_add --template="../sources/extra_files/mopidyctl" --destination="$cmd
 chmod +x "$cmd_file"
 
 #=================================================
-# SPECIFIC SETUP
+# START SYSTEMD SERVICES
 #=================================================
-# BUILD MULTIMEDIA
-#=================================================
-ynh_script_progression "Building multimedia directory..."
+ynh_script_progression "Starting $app's systemd services..."
 
-ynh_multimedia_build_main_dir      # /home/yunohost.multimedia
-
-#=================================================
-# PROVIDE EXAMPLES
-#=================================================
-
-# provide example m3u-playlist
-mkdir -p "$data_dir/data/m3u/"
-cp -a ../sources/extra_files/radio_international.m3u "$data_dir/data/m3u/radio_international.m3u"
-
-#provide example podcasts
-mkdir -p "$data_dir/data/podcast"
-cp -a ../sources/extra_files/bbc.opml "$data_dir/data/podcast/bbc.opml"
-
-#provide example local music file
-if [ "$(ls -A "$media_dir" 2> /dev/null)" == "" ]; then   # copy example.mp3 to mediadir if empty (for test purpose)
-    cp -a ../sources/extra_files/Tryad_Beauty.mp3 "$media_dir"
-fi
+ynh_systemctl --service="$app" --action="start" --log_path="systemd"
+ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 #=================================================
-# SYSTEM CONFIGURATION
+# SCAN THE LOCAL LIBRARY
 #=================================================
-ynh_script_progression "Adding system configurations related to $app..."
+ynh_script_progression "Scanning the local library..."
 
-# Create a dedicated NGINX config
-ynh_config_add_nginx
-
-# Create a dedicated systemd config
-ynh_config_add_systemd
-if [ "$mpd_ext" -eq 1 ]; then
-    yunohost service add "$app" --description="Mopidy music server" --needs_exposed_ports="$port_mpd"
-else
-    yunohost service add "$app" --description="Mopidy music server"
-fi
-
-#=================================================
-# OPEN PORT
-#=================================================
-if [ "$mpd_ext" -eq 1 ]; then
-    ynh_script_progression "Opening MPD-port $port_mpd..."
-    ynh_hide_warnings yunohost firewall allow --no-upnp TCP "$port_mpd"
-fi
-
-#=================================================
-# SETUP SSOWAT
-#=================================================
-ynh_script_progression "Configuring domain-wide permissions..."
-
-ynh_permission_url --permission="main" --add_url="$domain/mopidy/ws"
-ynh_permission_url --permission="main" --add_url="$domain/musicbox_webclient"
-ynh_permission_url --permission="main" --add_url="$domain/local"
-
-#=================================================
-# RECONFIGURE THE APP (UPDATE CONF, APPLY MIGRATIONS...)
-#=================================================
-# SCAN LOCAL MEDIA DIRECTORY
-#=================================================
-ynh_script_progression "Running the initial local media directory..."
-
-"$cmd_file" local scan  2>&1
-
-#=================================================
-# START SYSTEMD SERVICE
-#=================================================
-ynh_script_progression "Starting $app's systemd service..."
-
-# Start a systemd service
-ynh_systemctl --service="$app" --action="start"
+ynh_hide_warnings "$cmd_file" local scan || true
 
 #=================================================
 # END OF SCRIPT
