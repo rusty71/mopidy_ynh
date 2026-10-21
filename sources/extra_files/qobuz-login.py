@@ -30,8 +30,8 @@ from urllib.parse import parse_qs, urlparse
 import requests
 
 # The configuration file of Mopidy.  On YunoHost the app lives in
-# /opt/mopidy, and the file holds the Qobuz credentials.
-CONF = Path("/opt/mopidy/mopidy.conf")
+# /var/www/mopidy, and the file holds the Qobuz credentials.
+CONF = Path("/var/www/mopidy/mopidy.conf")
 BASE_URL = "https://www.qobuz.com/api.json/0.2"
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "

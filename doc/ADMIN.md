@@ -87,7 +87,7 @@ journalctl -u mopidy-publisher -f
 
 ## The configuration
 
-The configuration of Mopidy is `/opt/mopidy/mopidy.conf`.  It holds the Qobuz
+The configuration of Mopidy is `/var/www/mopidy/mopidy.conf`.  It holds the Qobuz
 credentials, so it is only readable by the Mopidy user (`chmod 400`).
 
 Most of it can be changed from the config panel of the app, which restarts the
@@ -103,10 +103,10 @@ mopidyctl local clear     # empty the index
 ## Where the code lives
 
 The components are installed as editable git checkouts in
-`/opt/mopidy/src/`, so the code can be changed on the server:
+`/var/www/mopidy/src/`, so the code can be changed on the server:
 
 ```bash
-cd /opt/mopidy/src/mopidy-qobuz
+cd /var/www/mopidy/src/mopidy-qobuz
 $EDITOR mopidy_qobuz/backend.py
 systemctl restart mopidy
 ```

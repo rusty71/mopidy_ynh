@@ -6,6 +6,6 @@
 #
 set -euo pipefail
 
-APP_DIR="/opt/mopidy"
+APP_DIR="/var/www/mopidy"
 
 exec sudo -u mopidy "$APP_DIR/venv/bin/mopidy" --config "$APP_DIR/mopidy.conf" "$@"

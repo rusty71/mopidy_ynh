@@ -8,19 +8,20 @@
 # checkouts, so the code can be changed on the server and the services
 # restarted.
 #
-# Each one is pinned to a tag *and* to the commit it points at: the tag
-# alone could be moved, the commit cannot.
+# Each one is pinned to a tag *and* to the commit the tag points at: the tag
+# alone could be moved, the commit cannot.  The commit is the one the tag
+# points at, not the tag object itself.
 MOPIDY_REPO="https://github.com/rusty71/mopidy.git"
 MOPIDY_TAG="ynh-1.0"
-MOPIDY_COMMIT="c120c2a24efd7755b25818702cc5e45ae4be2da8"
+MOPIDY_COMMIT="ccaadf7862b70111db03b0d25222652625869042"
 
 IRIS_REPO="https://github.com/rusty71/mopidy-iris.git"
 IRIS_TAG="ynh-1.0"
-IRIS_COMMIT="610822d2f107d0ec6d9195d2a00aa0108913f212"
+IRIS_COMMIT="3c7117457843c87096088c3782a626ebd12dd694"
 
 QOBUZ_REPO="https://github.com/rusty71/mopidy-qobuz.git"
 QOBUZ_TAG="ynh-1.0"
-QOBUZ_COMMIT="0ef9245a1322319081f9cb2f53dde1b5debb9000"
+QOBUZ_COMMIT="ccfa187cbe58442a56fa03349abf9a98af903091"
 
 # Mopidy-Local is not patched, so it comes from PyPI.
 LOCAL_VERSION="3.3.0"
