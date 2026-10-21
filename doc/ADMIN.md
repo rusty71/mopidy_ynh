@@ -70,8 +70,8 @@ The publisher turns the playback into two continuous Icecast streams:
 
 They are served by the Icecast app, which listens on its own port:
 
-* `http://<domain>:<icecast port>/low.mp3`
-* `http://<domain>:<icecast port>/high.ogg`
+* `https://<domain>:<icecast port>/low.mp3`
+* `https://<domain>:<icecast port>/high.ogg`
 
 and through the reverse proxy of the domain:
 
