@@ -51,6 +51,17 @@ The token is bound to the app id: a token that was issued for one app id is
 rejected by the other.  The package uses the `377257687` / `806331c3b0b641da923b890aed01d04a`
 pair by default, which is the one the token above is issued for.
 
+## The album art
+
+Mopidy-Local serves the images of the local library under the path
+`/local/`, which is outside of the path of the app.  The nginx
+configuration of the app serves that path too, and the permission of the
+app covers it, so the images are there for the browser that asks the
+domain for them.
+
+The album art of the albums in Qobuz comes from Qobuz itself and is
+served by them.
+
 ## The volume control
 
 The volume belongs to the server, not to the listener: with the control in
