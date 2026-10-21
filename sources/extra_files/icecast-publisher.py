@@ -191,7 +191,14 @@ class Publisher:
             ),
         )
         appsrc.set_property("max-bytes", 16 * 1024 * 1024)
-        appsrc.set_property("block", True)
+        # Do not block when the queue is full.  With block=True the main
+        # thread would wait for the encoder inside push-buffer, and while it
+        # waits it holds the GIL - but the encoder needs the GIL to run the
+        # callback that writes to Icecast.  On PyGObject 3.42 (Debian 12)
+        # that deadlocks: both threads spin at 100% CPU and the stream stops.
+        # The queue absorbs the difference instead; the encoder is far
+        # faster than real time, so it never fills up.
+        appsrc.set_property("block", False)
 
         pipeline = Gst.Pipeline.new(None)
         sink = Gst.ElementFactory.make("fakesink")
@@ -464,7 +471,7 @@ def main():
     )
     parser.add_argument(
         "--state-file",
-        default="/var/lib/mopidy-publisher/publisher-state",
+        default="/home/opencode/mopidy-stack/run/publisher-state",
         help="file used to remember whether Mopidy was playing",
     )
     parser.add_argument(
@@ -550,6 +557,16 @@ def main():
                 publisher.push(data, pts)
                 pts += frames * Gst.SECOND // args.rate
                 pushed_frames += frames
+
+                # Give the encoder time to catch up.  It writes the data to
+                # Icecast from its own thread, and that thread needs the GIL
+                # - which the main thread holds while it is in here.  Without
+                # this pause the main thread spins at 100% CPU, starves the
+                # encoder, and the stream falls behind (PyGObject 3.42, which
+                # is what Debian 12 ships, keeps the GIL while push-buffer
+                # waits).  Pausing for half the time the audio represents
+                # keeps the timing and lets the encoder keep up.
+                time.sleep(frames / args.rate / 2)
             else:
                 time.sleep(0.005)
 
