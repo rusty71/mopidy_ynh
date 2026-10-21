@@ -125,13 +125,16 @@ _mopidy_patch_iris_frontend() {
     # The basename of the router needs its leading slash.
     local basename="/$base"
 
-    python3 - "$install_dir/src/mopidy-iris/mopidy_iris/static" "$base" "$basename" <<'EOF'
+    local hide_volume="${hide_volume:-true}"
+
+    python3 - "$install_dir/src/mopidy-iris/mopidy_iris/static" "$base" "$basename" "$hide_volume" <<'EOF'
 import pathlib
 import sys
 
 static = pathlib.Path(sys.argv[1])
 base = sys.argv[2]
 basename = sys.argv[3]
+hide_volume = sys.argv[4] not in ("false", "0", "no", "off", "")
 
 # The base path of the page: the browser uses it to find the assets.
 index = static / "index.html"
@@ -165,6 +168,28 @@ for name in ("app.js", "app.min.js"):
     text = path.read_text(encoding="utf-8")
     for old, new in replacements:
         text = text.replace(old, new)
+    path.write_text(text, encoding="utf-8")
+
+# The volume of the server is for everyone who listens: the control is
+# hidden, so two listeners do not fight over it.
+volume_rule = (
+    "\n/* The volume control is hidden: the volume belongs to the "
+    "server, not to the listener. */\n"
+    ".playback-controls section.volume { display: none !important; }\n"
+)
+
+for name in ("app.css", "app.min.css"):
+    path = static / name
+    if not path.exists():
+        continue
+    text = path.read_text(encoding="utf-8")
+    # Take the rule away first, so it is not there twice.
+    text = text.replace(volume_rule, "")
+    text = text.replace(
+        ".playback-controls section.volume { display: none !important; }", ""
+    )
+    if hide_volume:
+        text += volume_rule
     path.write_text(text, encoding="utf-8")
 EOF
 

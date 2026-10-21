@@ -55,6 +55,22 @@ get__icecast_admin_user() {
     sed -n 's/.*--admin-user=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
 }
 
+get__interface_hide_volume() {
+    if grep -q "playback-controls section.volume { display: none" \
+        "$install_dir/src/mopidy-iris/mopidy_iris/static/app.min.css" 2>/dev/null; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+set__interface_hide_volume() {
+    hide_volume="$interface_hide_volume"
+    ynh_print_info "Applying the volume setting of the interface..."
+    _mopidy_patch_iris_frontend
+    ynh_print_info "Reload the page of the interface to see the change"
+}
+
 get__cache_enabled() {
     _mopidy_config_get cache_enabled
 }

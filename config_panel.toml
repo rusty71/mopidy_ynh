@@ -70,6 +70,17 @@ version = "1.0"
         type = "string"
         bind = "null"
 
+    [main.interface]
+    name = "Interface"
+
+        [main.interface.hide_volume]
+        ask.en = "Hide the volume control?"
+        ask.fr = "Masquer le controle de volume ?"
+        help.en = "The volume belongs to the server, so two listeners would fight over it."
+        help.fr = "Le volume appartient au serveur, deux auditeurs se le disputeraient."
+        type = "boolean"
+        bind = "null"
+
     [main.cache]
     name = "Album cache"
 
