@@ -97,7 +97,31 @@ _mopidy_install_iris_frontend() {
     cp -a "$wheel_dir/unpacked/mopidy_iris/static" \
         "$install_dir/src/mopidy-iris/mopidy_iris/static"
 
+    _mopidy_fix_iris_base_href
+
     ynh_safe_rm "$wheel_dir"
+}
+
+_mopidy_fix_iris_base_href() {
+    # The built frontend has the base path of the interface hardcoded:
+    # <base id="base_href" href="/iris/">.  The browser uses it for the
+    # assets, so when the app is not installed at the root of the domain the
+    # assets would be looked for outside of the app (and end up at the login
+    # page of YunoHost).  Point it at the path of the app.
+    local index="$install_dir/src/mopidy-iris/mopidy_iris/static/index.html"
+
+    [ -f "$index" ] || return 0
+
+    local base="iris"
+    if [ -n "${path:-}" ] && [ "$path" != "/" ]; then
+        base="${path#/}/iris"
+    fi
+
+    ynh_print_info "Pointing the Iris frontend at /$base/"
+
+    sed -i "s|href=\"/iris/\"|href=\"/$base/\"|" "$index"
+
+    chown -R "$app:" "$install_dir/src/mopidy-iris/mopidy_iris/static"
 }
 
 _mopidy_install_python() {
