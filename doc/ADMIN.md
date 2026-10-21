@@ -68,16 +68,15 @@ The publisher turns the playback into two continuous Icecast streams:
 | `/low.mp3` | MP3, 128 kbps CBR, 48 kHz stereo |
 | `/high.ogg` | Ogg FLAC, lossless, up to 24-bit/96 kHz |
 
-They are served by the Icecast app:
-
-* `https://<domain><icecast path>/low.mp3`
-* `https://<domain><icecast path>/high.ogg`
-
-When the Icecast app has its port open (the **expose_port** setting), the
-listeners can also connect to it directly:
+They are served by the Icecast app, which listens on its own port:
 
 * `http://<domain>:<icecast port>/low.mp3`
 * `http://<domain>:<icecast port>/high.ogg`
+
+and through the reverse proxy of the domain:
+
+* `https://<domain><icecast path>/low.mp3`
+* `https://<domain><icecast path>/high.ogg`
 
 The publisher keeps the Icecast session open across track changes, so a
 listener never notices a change of track.  If Mopidy is not playing, the
