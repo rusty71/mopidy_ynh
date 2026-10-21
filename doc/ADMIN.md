@@ -67,6 +67,12 @@ They are served by the Icecast app:
 * `https://<domain><icecast path>/low.mp3`
 * `https://<domain><icecast path>/high.ogg`
 
+When the Icecast app has its port open (the **expose_port** setting), the
+listeners can also connect to it directly:
+
+* `http://<domain>:<icecast port>/low.mp3`
+* `http://<domain>:<icecast port>/high.ogg`
+
 The publisher keeps the Icecast session open across track changes, so a
 listener never notices a change of track.  If Mopidy is not playing, the
 mounts serve a silent fallback in exactly the same format.
