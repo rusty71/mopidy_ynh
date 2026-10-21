@@ -10,7 +10,7 @@ StartLimitIntervalSec=60
 Type=simple
 User=__APP__
 Group=__APP__
-ExecStart=__INSTALL_DIR__/venv/bin/python __INSTALL_DIR__/icecast-publisher.py --listen-host=127.0.0.1 --listen-port=9900 --icecast-host=__ICECAST_HOST__ --icecast-port=__ICECAST_PORT__ --password=__ICECAST_PASSWORD__ --admin-user=__ICECAST_ADMIN_USER__ --admin-password=__ICECAST_PASSWORD__ --mopidy-url=http://127.0.0.1:__PORT__/mopidy/rpc --state-file=__INSTALL_DIR__/run/publisher-state --output=/high.ogg:flac --output=/low.mp3:mp3:128
+ExecStart=__INSTALL_DIR__/venv/bin/python __INSTALL_DIR__/icecast-publisher.py --listen-host=127.0.0.1 --listen-port=9900 --icecast-host=__ICECAST_HOST__ --icecast-port=__ICECAST_PORT__ --tls --password=__ICECAST_PASSWORD__ --admin-user=__ICECAST_ADMIN_USER__ --admin-password=__ICECAST_PASSWORD__ --mopidy-url=http://127.0.0.1:__PORT__/mopidy/rpc --state-file=__INSTALL_DIR__/run/publisher-state --output=/high.ogg:flac --output=/low.mp3:mp3:128
 Restart=always
 RestartSec=5
 StartLimitBurst=10

@@ -31,6 +31,7 @@ import base64
 import errno
 import logging
 import socket
+import ssl
 import sys
 import threading
 import time
@@ -78,7 +79,7 @@ class IcecastSource:
     """A source client connection to Icecast that stays open."""
 
     def __init__(self, host, port, mount, user, password, content_type, name,
-                 ogg=False):
+                 ogg=False, tls=False):
         self.host = host
         self.port = port
         self.mount = mount
@@ -97,9 +98,20 @@ class IcecastSource:
         self.ogg = ogg
         self.header = b""
         self.capturing_header = ogg
+        self.tls = tls
 
     def connect(self):
         sock = socket.create_connection((self.host, self.port), timeout=15)
+
+        if self.tls:
+            # The certificate of the server is for the name of the domain,
+            # but the connection goes to the address of the server, so the
+            # name cannot be checked here.
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            sock = context.wrap_socket(sock, server_hostname=self.host)
+
         auth = base64.b64encode(f"{self.user}:{self.password}".encode()).decode()
         request = (
             f"SOURCE {self.mount} HTTP/1.0\r\n"
@@ -174,9 +186,8 @@ class IcecastSource:
                 "charset": "UTF-8",
             }
         )
-        url = (
-            f"http://{self.host}:{self.port}/admin/metadata?{query}"
-        )
+        scheme = "https" if self.tls else "http"
+        url = f"{scheme}://{self.host}:{self.port}/admin/metadata?{query}"
         credentials = base64.b64encode(
             f"{admin_user}:{admin_password}".encode()
         ).decode()
@@ -184,8 +195,17 @@ class IcecastSource:
             url, headers={"Authorization": f"Basic {credentials}"}
         )
         try:
-            with urllib.request.urlopen(request, timeout=10):
-                pass
+            if self.tls:
+                # The certificate is for the name of the domain, not for the
+                # address the request goes to.
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                with urllib.request.urlopen(request, timeout=10, context=context):
+                    pass
+            else:
+                with urllib.request.urlopen(request, timeout=10):
+                    pass
         except Exception as error:
             logger.debug("Could not set the metadata: %s", error)
 
@@ -516,6 +536,11 @@ def main():
     parser.add_argument("--password", default="hackme")
     parser.add_argument("--name", default="Mopidy")
     parser.add_argument(
+        "--tls",
+        action="store_true",
+        help="the Icecast server speaks https on its port",
+    )
+    parser.add_argument(
         "--admin-user",
         default="admin",
         help="Icecast admin user, used to publish the track title",
@@ -562,6 +587,7 @@ def main():
             CONTENT_TYPES[target["codec"]],
             args.name,
             ogg=(target["codec"] == "flac"),
+            tls=args.tls,
         )
         while True:
             try:
