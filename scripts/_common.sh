@@ -73,9 +73,11 @@ _mopidy_install_iris_frontend() {
     local wheel_dir="$install_dir/.iris-wheel"
 
     ynh_safe_rm "$wheel_dir"
-    mkdir -p "$wheel_dir"
+    # The download is done as the app user, so the directory has to belong to
+    # it as well.
+    ynh_exec_as_app mkdir -p "$wheel_dir"
 
-    ynh_exec_as_app "$install_dir/venv/bin/pip" download --no-deps --no-cache-dir \
+    ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" download --no-deps --no-cache-dir \
         --dest "$wheel_dir" "Mopidy-Iris==3.70.0" >/dev/null
 
     local wheel
@@ -84,7 +86,7 @@ _mopidy_install_iris_frontend() {
         ynh_die "Could not download the Mopidy-Iris wheel"
     fi
 
-    mkdir -p "$wheel_dir/unpacked"
+    ynh_exec_as_app mkdir -p "$wheel_dir/unpacked"
     ynh_exec_as_app unzip -q -o "$wheel" -d "$wheel_dir/unpacked"
 
     if [ ! -d "$wheel_dir/unpacked/mopidy_iris/static" ]; then
