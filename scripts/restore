@@ -1,6 +1,13 @@
 #!/bin/bash
 
-source _common.sh
+# The restore and backup scripts can be run from a different directory (the
+# restore runs from a work directory), so the common helpers are looked up
+# where they are.
+_common_script="$(dirname "$0")/_common.sh"
+if [ ! -f "$_common_script" ]; then
+    _common_script="/etc/yunohost/apps/$app/scripts/_common.sh"
+fi
+source "$_common_script"
 source /usr/share/yunohost/helpers
 
 #=================================================
