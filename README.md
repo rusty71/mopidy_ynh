@@ -16,15 +16,19 @@ streams.
 
 ## Installation
 
-From the YunoHost admin web interface, or:
+Install from the URL of this repository (in the admin web interface: "Install
+a custom app"), not from the app catalog entry:
 
 ```bash
-yunohost app install mopidy \
+yunohost app install https://github.com/rusty71/mopidy_ynh \
     --domain="music.example.org" \
     --path="/mopidy" \
     --qobuz_auth_token="<the token of the Qobuz web player>" \
     --icecast_password="<the password of the Icecast app>"
 ```
+
+The app id is `mopidy`, the same as the official package, so
+`yunohost app install mopidy` installs the official one from the catalog.
 
 The Qobuz auth token is the token that the Qobuz web player holds; see
 [doc/ADMIN.md](doc/ADMIN.md) for how to get it.
