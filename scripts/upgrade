@@ -8,15 +8,19 @@ source /usr/share/yunohost/helpers
 #=================================================
 ynh_script_progression "Stopping $app's systemd services..."
 
-ynh_systemctl --service="mopidy-publisher" --action="stop"
+# Older installations ran a separate publisher; it has to be gone before
+# Mopidy starts publishing by itself, or both would fight over the mount.
+if [ -f /etc/systemd/system/mopidy-publisher.service ]; then
+    ynh_systemctl --service="mopidy-publisher" --action="stop"
+fi
 ynh_systemctl --service="$app" --action="stop"
 
 #=================================================
 # UPDATE THE SETTINGS FROM THE EXISTING CONFIGURATION
 #=================================================
-# The credentials live in the configuration file of Mopidy (and in the
-# systemd unit of the publisher), not in the settings of the app: read them
-# from there, so that an upgrade does not wipe them.
+# The credentials live in the configuration file of Mopidy, not in the
+# answers of the install questions: read them from there, so that an
+# upgrade does not wipe them.
 _mopidy_load_config_vars || true
 
 # Every variable of the templates has to exist, even when the configuration
@@ -28,13 +32,26 @@ qobuz_email="${qobuz_email:-}"
 qobuz_auth_token="${qobuz_auth_token:-}"
 qobuz_app_id="${qobuz_app_id:-}"
 qobuz_secret="${qobuz_secret:-}"
-qobuz_quality="${qobuz_quality:-27}"
+qobuz_quality="${qobuz_quality:-6}"
 icecast_host="${icecast_host:-127.0.0.1}"
 icecast_port="${icecast_port:-8000}"
 icecast_password="${icecast_password:-}"
-icecast_admin_user="${icecast_admin_user:-admin}"
+icecast_admin_user="$(_mopidy_icecast_admin_user)"
+icecast_source_port="$(_mopidy_icecast_source_port)"
 cache_enabled="${cache_enabled:-true}"
 cache_dir="${cache_dir:-}"
+
+ynh_app_setting_set --key=icecast_admin_user --value="$icecast_admin_user"
+ynh_app_setting_set --key=icecast_source_port --value="$icecast_source_port"
+
+# The lossless mount is gone, so there is no point in pulling hi-res from
+# Qobuz anymore: the stream is 44.1 kHz MP3.
+case "$qobuz_quality" in
+    27|7)
+        ynh_print_info "The stream is CD quality now; the Qobuz quality changes from $qobuz_quality to 6"
+        qobuz_quality="6"
+        ;;
+esac
 
 # The same normalisation as in the install script.
 case "$cache_enabled" in
@@ -55,7 +72,14 @@ _mopidy_install_python
 ynh_script_progression "Updating $app's configuration..."
 
 _mopidy_config
-_mopidy_deploy_publisher
+_mopidy_install_titles
+
+# Remove what the publisher left behind.
+if [ -f /etc/systemd/system/mopidy-publisher.service ]; then
+    ynh_config_remove_systemd --service="mopidy-publisher"
+fi
+ynh_safe_rm "$install_dir/icecast-publisher.py"
+ynh_safe_rm "$install_dir/run"
 
 #=================================================
 # REAPPLY SYSTEM CONFIGURATIONS
@@ -70,9 +94,8 @@ fi
 ynh_config_add_nginx
 
 ynh_config_add_systemd
-ynh_config_add_systemd --service="mopidy-publisher" --template="systemd-publisher.service"
 
-yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast stream)"
 
 #=================================================
 # SETUP SSOWAT
@@ -92,7 +115,6 @@ ynh_permission_url --permission="main" --add_url="$domain/local"
 ynh_script_progression "Starting $app's systemd services..."
 
 ynh_systemctl --service="$app" --action="start" --log_path="systemd"
-ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 #=================================================
 # SCAN THE LOCAL LIBRARY

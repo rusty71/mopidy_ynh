@@ -15,11 +15,13 @@ qobuz_email="${qobuz_email:-}"
 qobuz_auth_token="${qobuz_auth_token:-}"
 qobuz_app_id="${qobuz_app_id:-}"
 qobuz_secret="${qobuz_secret:-}"
-qobuz_quality="${qobuz_quality:-27}"
+qobuz_quality="${qobuz_quality:-6}"
 icecast_host="${icecast_host:-127.0.0.1}"
 icecast_port="${icecast_port:-8000}"
 icecast_password="${icecast_password:-}"
 icecast_admin_user="${icecast_admin_user:-admin}"
+icecast_source_port="$(_mopidy_icecast_source_port)"
+icecast_admin_user="$(_mopidy_icecast_admin_user)"
 cache_enabled="${cache_enabled:-true}"
 cache_dir="${cache_dir:-}"
 
@@ -39,6 +41,7 @@ ynh_app_setting_set --key=icecast_host --value="$icecast_host"
 ynh_app_setting_set --key=icecast_port --value="$icecast_port"
 ynh_app_setting_set --key=icecast_password --value="$icecast_password"
 ynh_app_setting_set --key=icecast_admin_user --value="$icecast_admin_user"
+ynh_app_setting_set --key=icecast_source_port --value="$icecast_source_port"
 ynh_app_setting_set --key=cache_enabled --value="$cache_enabled"
 ynh_app_setting_set --key=cache_dir --value="$cache_dir"
 
@@ -55,7 +58,7 @@ _mopidy_install_python
 ynh_script_progression "Adding $app's configuration..."
 
 _mopidy_config
-_mopidy_deploy_publisher
+_mopidy_install_titles
 
 #=================================================
 # SYSTEM CONFIGURATION
@@ -77,9 +80,8 @@ ynh_config_add_nginx
 
 # Create the systemd services
 ynh_config_add_systemd
-ynh_config_add_systemd --service="mopidy-publisher" --template="systemd-publisher.service"
 
-yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast stream)"
 
 #=================================================
 # SETUP SSOWAT
@@ -108,7 +110,6 @@ chmod +x "$cmd_file"
 ynh_script_progression "Starting $app's systemd services..."
 
 ynh_systemctl --service="$app" --action="start" --log_path="systemd"
-ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 #=================================================
 # SCAN THE LOCAL LIBRARY

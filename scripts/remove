@@ -8,7 +8,9 @@ source /usr/share/yunohost/helpers
 #=================================================
 ynh_script_progression "Stopping $app's systemd services..."
 
-ynh_systemctl --service="mopidy-publisher" --action="stop"
+if [ -f /etc/systemd/system/mopidy-publisher.service ]; then
+    ynh_systemctl --service="mopidy-publisher" --action="stop"
+fi
 ynh_systemctl --service="$app" --action="stop"
 
 #=================================================
@@ -20,7 +22,9 @@ if ynh_hide_warnings yunohost service status "$app" >/dev/null; then
     yunohost service remove "$app"
 fi
 
-ynh_config_remove_systemd --service="mopidy-publisher"
+if [ -f /etc/systemd/system/mopidy-publisher.service ]; then
+    ynh_config_remove_systemd --service="mopidy-publisher"
+fi
 ynh_config_remove_systemd
 
 ynh_config_remove_nginx

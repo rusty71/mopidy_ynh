@@ -12,8 +12,8 @@
 # alone could be moved, the commit cannot.  The commit is the one the tag
 # points at, not the tag object itself.
 MOPIDY_REPO="https://github.com/rusty71/mopidy.git"
-MOPIDY_TAG="ynh-1.0"
-MOPIDY_COMMIT="ccaadf7862b70111db03b0d25222652625869042"
+MOPIDY_TAG="ynh-1.1"
+MOPIDY_COMMIT="bf058a448ad32cfa923df13b68f554f315132ce3"
 
 IRIS_REPO="https://github.com/rusty71/mopidy-iris.git"
 IRIS_TAG="ynh-1.1"
@@ -26,9 +26,8 @@ QOBUZ_COMMIT="ccfa187cbe58442a56fa03349abf9a98af903091"
 # Mopidy-Local is not patched, so it comes from PyPI.
 LOCAL_VERSION="3.3.0"
 
-# The Icecast mounts the publisher fills.
-MOUNT_LOSSY="/low.mp3"
-MOUNT_HIRES="/high.ogg"
+# The Icecast mount Mopidy publishes on.
+MOUNT="/low.mp3"
 
 cmd_file="/usr/local/bin/mopidyctl"
 
@@ -262,15 +261,52 @@ _mopidy_install_python() {
     _mopidy_install_iris_frontend
 }
 
-_mopidy_deploy_publisher() {
-    # The publisher keeps the Icecast session open across track changes.
-    mkdir -p "$install_dir/run"
-    chown -R "$app:" "$install_dir/run"
+_mopidy_install_titles() {
+    # The frontend that publishes the title of the playing track to
+    # Icecast.  It lives in this package, so it is copied into the source
+    # tree and installed in the venv like the other components.
+    ynh_safe_rm "$install_dir/src/icecast-titles"
+    cp -a "../sources/icecast_titles" "$install_dir/src/icecast-titles"
+    chown -R "$app:" "$install_dir/src/icecast-titles"
 
-    ynh_config_add --template="../sources/extra_files/icecast-publisher.py" \
-        --destination="$install_dir/icecast-publisher.py"
+    ynh_hide_warnings ynh_exec_as_app "$install_dir/venv/bin/pip" install \
+        --no-cache-dir --no-build-isolation --no-deps \
+        -e "$install_dir/src/icecast-titles"
+}
 
-    chmod 755 "$install_dir/icecast-publisher.py"
+_mopidy_icecast_app_setting() {
+    # Read a key from the settings of the Icecast app.  The two apps are
+    # installed together; Mopidy needs the local source port and the admin
+    # user from there.
+    local key="$1"
+    local file
+
+    for file in /etc/yunohost/apps/*/settings.yml; do
+        [ -f "$file" ] || continue
+        grep -q "^id: icecast2$" "$file" || continue
+        sed -n "s/^${key}: //p" "$file" \
+            | head -1 \
+            | sed -e "s/^'//" -e "s/'$//" -e 's/^"//' -e 's/"$//'
+        return 0
+    done
+}
+
+_mopidy_icecast_source_port() {
+    # The plain socket of Icecast that the source connects to.  It is a
+    # setting of the Icecast app; fall back to the port after the public
+    # one when that app is not installed here.
+    local source_port
+    source_port="$(_mopidy_icecast_app_setting source_port)"
+    [ -n "$source_port" ] || source_port=$(( ${icecast_port:-8000} + 1 ))
+    echo "$source_port"
+}
+
+_mopidy_icecast_admin_user() {
+    # The admin user of the Icecast app, used for the title updates.
+    local admin
+    admin="$(_mopidy_icecast_app_setting admin)"
+    [ -n "$admin" ] || admin="${icecast_admin_user:-admin}"
+    echo "$admin"
 }
 
 _mopidy_load_config_vars() {
@@ -289,9 +325,16 @@ _mopidy_load_config_vars() {
     cache_enabled="$(_mopidy_config_get cache_enabled "$file")"
     cache_dir="$(_mopidy_config_get cache_dir "$file")"
 
-    # The Icecast settings are in the systemd unit of the publisher.
+    # The Icecast settings are in the settings of the app.
+    icecast_host="$(ynh_app_setting_get --key=icecast_host)"
+    icecast_port="$(ynh_app_setting_get --key=icecast_port)"
+    icecast_password="$(ynh_app_setting_get --key=icecast_password)"
+    icecast_admin_user="$(ynh_app_setting_get --key=icecast_admin_user)"
+
+    # An installation from before the publisher was dropped kept them in
+    # the unit of the publisher.
     local unit="/etc/systemd/system/mopidy-publisher.service"
-    if [ -f "$unit" ]; then
+    if [ -z "$icecast_password" ] && [ -f "$unit" ]; then
         icecast_host="$(sed -n 's/.*--icecast-host=\([^ ]*\).*/\1/p' "$unit" | head -1)"
         icecast_port="$(sed -n 's/.*--icecast-port=\([^ ]*\).*/\1/p' "$unit" | head -1)"
         icecast_password="$(sed -n 's/.*--password=\([^ ]*\).*/\1/p' "$unit" | head -1)"
@@ -300,7 +343,7 @@ _mopidy_load_config_vars() {
 }
 
 _mopidy_config() {
-    # Write the configuration file of Mopidy and of the publisher.
+    # Write the configuration file of Mopidy.
     ynh_config_add --template="app.conf" --destination="$install_dir/$app.conf"
 
     chmod 400 "$install_dir/$app.conf"

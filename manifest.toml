@@ -4,10 +4,10 @@ packaging_format = 2
 
 id = "mopidy"
 name = "Mopidy"
-description.en = "Music server with the Iris web interface, Qobuz hi-res streaming and an Icecast publisher"
-description.fr = "Serveur de musique avec l'interface web Iris, le streaming Qobuz hi-res et un filtreur Icecast"
+description.en = "Music server with the Iris web interface, Qobuz and a 320 kbps Icecast stream"
+description.fr = "Serveur de musique avec l'interface web Iris, Qobuz et un flux Icecast 320 kbps"
 
-version = "3.4.2~ynh29"
+version = "3.4.2~ynh30"
 
 maintainers = ["rusty71"]
 
@@ -71,7 +71,7 @@ ram.runtime = "200M"
     choices.7 = "Hi-res FLAC, up to 24-bit/96 kHz"
     choices.6 = "CD quality FLAC, 16-bit/44.1 kHz"
     choices.5 = "MP3, 320 kbps"
-    default = "27"
+    default = "6"
 
     [install.icecast_host]
     ask.en = "Icecast host"

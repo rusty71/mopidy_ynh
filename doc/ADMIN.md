@@ -87,36 +87,44 @@ library:
 The files are indexed by Mopidy-Local, so they show up in the interface and
 play like any other track.  The cache can be turned off in the config panel.
 
-## The two streams
+## The stream
 
-The publisher turns the playback into two continuous Icecast streams:
+Mopidy publishes one stream, through GStreamer's `shout2send`:
 
 | Mount | Format |
 |---|---|
-| `/low.mp3` | MP3, 128 kbps CBR, 48 kHz stereo |
-| `/high.ogg` | Ogg FLAC, lossless, up to 24-bit/96 kHz |
+| `/low.mp3` | MP3, 320 kbps CBR, 44.1 kHz stereo |
 
-They are served by the Icecast app, which listens on its own port:
+It is served by the Icecast app, on its own port and through the reverse
+proxy of the domain:
 
 * `https://<domain>:<icecast port>/low.mp3`
-* `https://<domain>:<icecast port>/high.ogg`
-
-and through the reverse proxy of the domain:
-
 * `https://<domain><icecast path>/low.mp3`
-* `https://<domain><icecast path>/high.ogg`
 
-The publisher keeps the Icecast session open across track changes, so a
-listener never notices a change of track.  If Mopidy is not playing, the
-mounts serve a silent fallback in exactly the same format.
+A natural track change is gapless, because Mopidy starts the next track
+before the current one ends.  A skip rebuilds the output, which costs about
+half a second; Icecast serves the silent fallback in the meantime.
+
+The title of the track is published to Icecast by the `icecast_titles`
+frontend, an extension that is installed from
+`src/icecast-titles` (part of this package).  The tag events of the stream
+are dropped on their way to the output, because a tagless stream (Qobuz
+serves tagless FLAC) would keep announcing "Unknown - Unknown".
+
+`shout2send` cannot speak TLS, so the app connects to the plain socket that
+the Icecast app has on `127.0.0.1`.  The port is in the `source_port`
+setting of the Icecast app; the public socket keeps the certificate.
 
 ## The services
 
 ```bash
-systemctl status mopidy mopidy-publisher
+systemctl status mopidy
 journalctl -u mopidy -f
-journalctl -u mopidy-publisher -f
 ```
+
+An installation from before the publisher was dropped still has a
+`mopidy-publisher` service in its unit files; the upgrade of this package
+removes it.
 
 ## The configuration
 

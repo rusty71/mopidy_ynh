@@ -7,8 +7,8 @@ package, adapted to the Mopidy + Qobuz stack:
 * the **Qobuz** extension with hi-res streaming, browser based login and an
   **album cache** that downloads queued albums as tagged FLAC files into the
   local library
-* an **Icecast publisher**, so the playback becomes two continuous streams
-  (MP3 and lossless Ogg FLAC) that survive the track changes
+* a **320 kbps MP3 Icecast stream** at 44.1 kHz, published by Mopidy itself,
+  with the track title announced to Icecast
 
 This package is meant to be installed together with
 [`icecast2_ynh`](https://github.com/rusty71/icecast2_ynh), which serves the
@@ -60,20 +60,28 @@ YunoHost considers the app up to date and does nothing.  When only the
 version is missing during development, `--force` can be added to the command
 above, but never leave out `-u`.
 
-## The two streams
+## The stream
 
-The publisher encodes the playback twice and publishes it on the mounts of the
-Icecast app:
+Mopidy publishes one stream on the mount of the Icecast app:
 
-| Stream | Format | Content |
-|---|---|---|
-| `/low.mp3` | MP3, 128 kbps CBR, 48 kHz stereo | low bandwidth |
-| `/high.ogg` | Ogg FLAC, lossless, up to 24-bit/96 kHz | high resolution |
+| Stream | Format |
+|---|---|
+| `/low.mp3` | MP3, 320 kbps CBR, 44.1 kHz stereo |
 
-Mopidy itself does not publish: it tears down its audio output on every track
-change, which makes Icecast splice a differently formatted fallback into the
-stream.  The publisher keeps one permanent Icecast session open and fills the
-gaps with silence, so a listener hears nothing but music.
+The audio leaves Mopidy through GStreamer's `shout2send`; there is no separate
+encoder or publisher process.  A natural track change is gapless, because
+Mopidy starts the next track before the current one ends.  A skip tears the
+output down and rebuilds it: Icecast then moves the listeners to the silent
+fallback and back, which costs about half a second.
+
+The title of the track is published to the admin endpoint of Icecast by the
+`icecast_titles` frontend of this package.  The tag events of the stream are
+dropped on their way to the output: Qobuz serves tagless FLAC, so they would
+keep announcing "Unknown - Unknown" and overwrite the real title.
+
+`shout2send` cannot speak TLS, so Mopidy connects to a plain socket of
+Icecast on the loopback interface.  The public socket keeps the certificate
+and is for the listeners.
 
 ## The album cache
 

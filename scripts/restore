@@ -26,12 +26,10 @@ ynh_script_progression "Restoring system configurations related to $app..."
 ynh_restore "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 ynh_restore "/etc/systemd/system/$app.service"
-ynh_restore "/etc/systemd/system/mopidy-publisher.service"
 
 systemctl enable "$app.service" --quiet
-systemctl enable "mopidy-publisher.service" --quiet
 
-yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast publisher)"
+yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Icecast stream)"
 
 #=================================================
 # RELOAD NGINX AND THE APP SERVICES
@@ -39,7 +37,6 @@ yunohost service add "$app" --description="Mopidy music server (Iris, Qobuz, Ice
 ynh_script_progression "Reloading NGINX web server and $app's services..."
 
 ynh_systemctl --service="$app" --action="start" --log_path="systemd"
-ynh_systemctl --service="mopidy-publisher" --action="start" --log_path="systemd"
 
 ynh_systemctl --service=nginx --action=reload
 

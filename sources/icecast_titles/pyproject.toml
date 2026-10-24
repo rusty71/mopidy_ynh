@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Mopidy-IcecastTitles"
+version = "1.0.0"
+description = "Publish the title of the playing track to an Icecast mount"
+requires-python = ">=3.9"
+
+[project.entry-points."mopidy.ext"]
+icecast_titles = "mopidy_icecast_titles:Extension"
+
+[tool.setuptools]
+packages = ["mopidy_icecast_titles"]
+
+[tool.setuptools.package-data]
+mopidy_icecast_titles = ["ext.conf"]

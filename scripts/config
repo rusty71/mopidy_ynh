@@ -39,11 +39,11 @@ get__qobuz_quality() {
 }
 
 get__icecast_host() {
-    sed -n 's/.*--icecast-host=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+    ynh_app_setting_get --key=icecast_host
 }
 
 get__icecast_port() {
-    sed -n 's/.*--icecast-port=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+    ynh_app_setting_get --key=icecast_port
 }
 
 get__icecast_password() {
@@ -52,7 +52,7 @@ get__icecast_password() {
 }
 
 get__icecast_admin_user() {
-    sed -n 's/.*--admin-user=\([^ ]*\).*/\1/p' /etc/systemd/system/mopidy-publisher.service | head -1
+    _mopidy_titles_get username
 }
 
 get__streams_url() {
@@ -132,24 +132,31 @@ set__qobuz_quality() {
 }
 
 set__icecast_host() {
-    _mopidy_set_icecast_option --icecast-host "$icecast_host"
+    ynh_app_setting_set --key=icecast_host --value="$icecast_host"
+    _mopidy_streaming_set host "$icecast_host"
 }
 
 set__icecast_port() {
-    _mopidy_set_icecast_option --icecast-port "$icecast_port"
+    ynh_app_setting_set --key=icecast_port --value="$icecast_port"
+
+    local source_port
+    source_port="$(_mopidy_icecast_source_port)"
+    _mopidy_streaming_set source_port "$source_port"
 }
 
 set__icecast_password() {
-    if [ -n "$icecast_password" ]; then
-        _mopidy_set_icecast_option --password "$icecast_password"
-        _mopidy_set_icecast_option --admin-password "$icecast_password"
-    else
+    if [ -z "$icecast_password" ]; then
         ynh_print_info "The Icecast password was left unchanged"
+        return
     fi
+
+    ynh_app_setting_set --key=icecast_password --value="$icecast_password"
+    _mopidy_streaming_set password "$icecast_password"
 }
 
 set__icecast_admin_user() {
-    _mopidy_set_icecast_option --admin-user "$icecast_admin_user"
+    ynh_app_setting_set --key=icecast_admin_user --value="$icecast_admin_user"
+    _mopidy_streaming_set username "$icecast_admin_user"
 }
 
 set__cache_enabled() {
@@ -166,15 +173,74 @@ set__cache_dir() {
 # HELPERS
 #=================================================
 
-_mopidy_set_icecast_option() {
-    # Change an option of the publisher in its systemd unit.
-    local option="$1"
+_mopidy_titles_get() {
+    # Read a key of the [icecast_titles] section.
+    local key="$1"
+    local file="$install_dir/$app.conf"
+
+    sed -n '/^\[icecast_titles\]/,/^\[/p' "$file" \
+        | grep -E "^[[:space:]]*${key}[[:space:]]*=" \
+        | head -1 \
+        | cut -d= -f2- \
+        | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+_mopidy_streaming_set() {
+    # Change one of the source settings: the shout2send output line and the
+    # [icecast_titles] section.
+    local field="$1"
     local value="$2"
-    local unit="/etc/systemd/system/mopidy-publisher.service"
+    local file="$install_dir/$app.conf"
 
-    [ -f "$unit" ] || ynh_die "The unit $unit does not exist"
+    chmod 600 "$file"
 
-    sed -i "s|${option}=[^ ]*|${option}=${value}|g" "$unit"
+    python3 - "$file" "$field" "$value" <<'PYTHON'
+import re
+import sys
+
+path, field, value = sys.argv[1:4]
+with open(path, encoding="utf-8") as handle:
+    lines = handle.read().splitlines()
+
+if field in ("host", "source_port", "password"):
+    for index, line in enumerate(lines):
+        if not line.startswith("output =") or "shout2send" not in line:
+            continue
+        if field == "host":
+            line = re.sub(r"(\bip=)[^ ]+", r"\g<1>" + value, line)
+        elif field == "source_port":
+            line = re.sub(r"(\bport=)[^ ]+", r"\g<1>" + value, line)
+        elif field == "password":
+            line = re.sub(
+                r'(\bpassword=)("[^"]*"|[^ ]+)', r'\g<1>"' + value + '"', line
+            )
+        lines[index] = line
+
+in_section = False
+for index, line in enumerate(lines):
+    if line.startswith("["):
+        in_section = line.strip() == "[icecast_titles]"
+        continue
+    if not in_section:
+        continue
+
+    if field in ("host", "source_port") and re.match(r"^url\s*=", line):
+        match = re.match(r"^(url\s*=\s*http://)([^:/]+)(:)([0-9]+)", line)
+        if match:
+            host = value if field == "host" else match.group(2)
+            port = value if field == "source_port" else match.group(4)
+            lines[index] = f"{match.group(1)}{host}:{port}/admin/metadata"
+    elif field == "password" and re.match(r"^password\s*=", line):
+        lines[index] = "password = " + value
+    elif field == "username" and re.match(r"^username\s*=", line):
+        lines[index] = "username = " + value
+
+with open(path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(lines) + "\n")
+PYTHON
+
+    chown "$app:$app" "$file"
+    chmod 400 "$file"
 }
 
 #=================================================
@@ -193,10 +259,9 @@ run__scan() {
 ynh_app_config_apply() {
     _ynh_app_config_apply
 
-    ynh_print_info "Restarting the services..."
+    ynh_print_info "Restarting the service..."
 
     ynh_systemctl --service="$app" --action="restart" --log_path="systemd"
-    ynh_systemctl --service="mopidy-publisher" --action="restart" --log_path="systemd"
 }
 
 # Keep this last line

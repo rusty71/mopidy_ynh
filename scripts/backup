@@ -19,7 +19,6 @@ ynh_print_info "Declaring files to be backed up..."
 ynh_backup "/etc/nginx/conf.d/$domain.d/$app.conf"
 
 ynh_backup "/etc/systemd/system/$app.service"
-ynh_backup "/etc/systemd/system/mopidy-publisher.service"
 
 # The configuration of Mopidy holds the Qobuz credentials, so it is backed up
 # with the other settings of the app.
