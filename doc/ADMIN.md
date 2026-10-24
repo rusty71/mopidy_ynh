@@ -133,6 +133,20 @@ mopidyctl local scan      # index the local library
 mopidyctl local clear     # empty the index
 ```
 
+## Upgrading
+
+This fork shares the app id `mopidy` with the official package.  Upgrading
+without an explicit source uses the official package from the app catalog,
+which is older (`3.4.2~ynh6`) and fails on this installation.  Always name the
+repository:
+
+```bash
+yunohost app upgrade mopidy -u https://github.com/rusty71/mopidy_ynh
+```
+
+Do not use the generic upgrade button or `--force` without `-u` until the
+catalog points at this fork.
+
 ## Where the code lives
 
 The components are installed as editable git checkouts in

@@ -29,6 +29,33 @@ yunohost app install mopidy \
 The Qobuz auth token is the token that the Qobuz web player holds; see
 [doc/ADMIN.md](doc/ADMIN.md) for how to get it.
 
+## Upgrading
+
+The app keeps the id `mopidy`, the same id as the official
+[YunoHost-Apps/mopidy_ynh](https://github.com/YunoHost-Apps/mopidy_ynh)
+package.  YunoHost resolves a plain
+
+```bash
+yunohost app upgrade mopidy
+```
+
+through the app catalog, and that catalog points at the official package
+(`3.4.2~ynh6`).  For an installation of this fork that is a *downgrade*, and
+the upgrade script of the official package then fails with
+`mpd_ext: unbound variable`.  The same happens when an upgrade is forced
+without a URL: `yunohost app upgrade mopidy --force`.
+
+Always pass the URL of this repository:
+
+```bash
+yunohost app upgrade mopidy -u https://github.com/rusty71/mopidy_ynh
+```
+
+A packaging change must also bump `version` in `manifest.toml`; otherwise
+YunoHost considers the app up to date and does nothing.  When only the
+version is missing during development, `--force` can be added to the command
+above, but never leave out `-u`.
+
 ## The two streams
 
 The publisher encodes the playback twice and publishes it on the mounts of the
