@@ -7,7 +7,7 @@ name = "Mopidy"
 description.en = "Music server with the Iris web interface, Qobuz and a 320 kbps Icecast stream"
 description.fr = "Serveur de musique avec l'interface web Iris, Qobuz et un flux Icecast 320 kbps"
 
-version = "3.4.2~ynh31"
+version = "3.4.2~ynh32"
 
 maintainers = ["rusty71"]
 
@@ -61,7 +61,7 @@ ram.runtime = "200M"
 
     [install.qobuz_secret]
     ask.en = "Qobuz app secret"
-    help.en = "Has to be the secret that belongs to the app id (the auth token is bound to the app id as well). The integration pair is 806331c3b0b641da923b890aed01d04a for the app id 377257687."
+    help.en = "Has to be the secret that belongs to the app id (the auth token is bound to the app id as well). The secret is not stored in this repository: take the pair from the Qobuz web player, see doc/ADMIN.md."
     type = "password"
 
     [install.qobuz_quality]

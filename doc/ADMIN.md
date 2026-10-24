@@ -48,8 +48,11 @@ the developer tools -> Application -> Local Storage -> `localuser` ->
 `token`, and use that value.
 
 The token is bound to the app id: a token that was issued for one app id is
-rejected by the other.  The package uses the `377257687` / `806331c3b0b641da923b890aed01d04a`
-pair by default, which is the one the token above is issued for.
+rejected by the other.  The package defaults to the integration app id
+`377257687`, which is the one the token above is issued for.  The matching
+secret is *not* stored in this repository: take it from the Qobuz web player
+(the bundle that `qobuz-dl` reads, or the developer tools of the player) and
+fill it in at install time or in the config panel.
 
 ## The album art
 
