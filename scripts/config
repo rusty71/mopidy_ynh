@@ -104,12 +104,14 @@ get__cache_dir() {
 
 set__qobuz_email() {
     _mopidy_config_set username "$qobuz_email"
+    ynh_app_setting_set --key=qobuz_email --value="$qobuz_email"
 }
 
 set__qobuz_token() {
     # An empty field means "keep the current token".
     if [ -n "$qobuz_token" ]; then
         _mopidy_config_set auth_token "$qobuz_token"
+        ynh_app_setting_set --key=qobuz_auth_token --value="$qobuz_token"
     else
         ynh_print_info "The Qobuz auth token was left unchanged"
     fi
@@ -117,11 +119,13 @@ set__qobuz_token() {
 
 set__qobuz_app_id() {
     _mopidy_config_set app_id "$qobuz_app_id"
+    ynh_app_setting_set --key=qobuz_app_id --value="$qobuz_app_id"
 }
 
 set__qobuz_secret() {
     if [ -n "$qobuz_secret" ]; then
         _mopidy_config_set secret "$qobuz_secret"
+        ynh_app_setting_set --key=qobuz_secret --value="$qobuz_secret"
     else
         ynh_print_info "The Qobuz app secret was left unchanged"
     fi

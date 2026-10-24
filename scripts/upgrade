@@ -76,7 +76,7 @@ _mopidy_install_titles
 
 # Remove what the publisher left behind.
 if [ -f /etc/systemd/system/mopidy-publisher.service ]; then
-    ynh_config_remove_systemd --service="mopidy-publisher"
+    ynh_config_remove_systemd "mopidy-publisher"
 fi
 ynh_safe_rm "$install_dir/icecast-publisher.py"
 ynh_safe_rm "$install_dir/run"

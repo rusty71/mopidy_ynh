@@ -325,6 +325,13 @@ _mopidy_load_config_vars() {
     cache_enabled="$(_mopidy_config_get cache_enabled "$file")"
     cache_dir="$(_mopidy_config_get cache_dir "$file")"
 
+    # The config panel kept the credentials only in the file; the settings
+    # are the fallback when the file lost them.
+    qobuz_email="${qobuz_email:-$(ynh_app_setting_get --key=qobuz_email)}"
+    qobuz_auth_token="${qobuz_auth_token:-$(ynh_app_setting_get --key=qobuz_auth_token)}"
+    qobuz_app_id="${qobuz_app_id:-$(ynh_app_setting_get --key=qobuz_app_id)}"
+    qobuz_secret="${qobuz_secret:-$(ynh_app_setting_get --key=qobuz_secret)}"
+
     # The Icecast settings are in the settings of the app.
     icecast_host="$(ynh_app_setting_get --key=icecast_host)"
     icecast_port="$(ynh_app_setting_get --key=icecast_port)"
